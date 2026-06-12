@@ -37,8 +37,8 @@ cortec_helpdesk/
 
 ```bash
 bench get-app cortec_helpdesk https://github.com/pvanderlaatu/cortec_helpdesk
-bench --site sistema.tecnocr.net install-app cortec_helpdesk
-bench --site sistema.tecnocr.net migrate
+bench --site sitio.dominio.com install-app cortec_helpdesk
+bench --site sitio.dominio.com migrate
 bench restart
 ```
 
@@ -46,17 +46,19 @@ bench restart
 
 ### 1. Cuentas de correo
 
-| Cuenta | Default Outgoing | Default Incoming | Saliente | Entrante |
-|--------|:---:|:---:|:---:|:---:|
-| no-reply@tecnocr.net | ✅ | ❌ | ✅ | ❌ |
-| soporte@tecnocr.net | ❌ | ✅ | ✅ | ✅ |
-| crm@tecnocr.net | ❌ | ❌ | ✅ | ✅ |
+| Cuenta                  | Default Outgoing | Default Incoming | Saliente | Entrante |
+| ----------------------- | :--------------: | :--------------: | :------: | :------: |
+| no-responda@dominio.com |        ✅        |        ❌        |    ✅    |    ❌    |
+| correo1@dominio.com     |        ❌        |        ✅        |    ✅    |    ✅    |
+| correo2@dominio.com     |        ❌        |        ❌        |    ✅    |    ✅    |
 
-Configuración adicional en **soporte@** y **crm@** (pestaña Saliente):
+Configuración adicional en **correo1@** y **correo2@** (pestaña Saliente):
+
 - ✅ Utilice siempre esta dirección como dirección de remitente
 - ✅ Utilizar siempre este nombre como nombre de remitente
 
-Configuración en **soporte@** (pestaña Entrante):
+Configuración en **correo1@** (pestaña Entrante):
+
 - Opción de Sincronizar: NO VISTO
 - Carpeta IMAP: solo INBOX → Append to: HD Ticket
 - No vincular INBOX.Sent
@@ -64,12 +66,12 @@ Configuración en **soporte@** (pestaña Entrante):
 
 ### 2. Roles
 
-| Rol | Propósito | Visibilidad |
-|-----|-----------|-------------|
-| System Manager | Administrador | Todos los tickets |
-| HD Manager | Supervisor helpdesk | Todos los tickets |
-| HD Agent Lead | Persona asignadora | Todos los tickets |
-| HD Agent | Agente de soporte | Solo tickets asignados |
+| Rol            | Propósito           | Visibilidad            |
+| -------------- | ------------------- | ---------------------- |
+| System Manager | Administrador       | Todos los tickets      |
+| HD Manager     | Supervisor helpdesk | Todos los tickets      |
+| HD Agent Lead  | Persona asignadora  | Todos los tickets      |
+| HD Agent       | Agente de soporte   | Solo tickets asignados |
 
 ### 3. Account Manager en cada Cliente
 
@@ -95,24 +97,24 @@ Configuración del Sistema
 ## Flujo de un ticket
 
 ```
-1. Cliente envía correo a soporte@tecnocr.net
+1. Cliente envía correo a correo1@dominio.com
 2. Frappe crea HD Ticket → auto_assign_ticket se ejecuta
 3. Sistema resuelve: email → Contacto → Cliente → account_manager
 4. Ticket asignado al agente automáticamente
-5. Agente y supervisor reciben notificación desde soporte@
-6. Helpdesk envía acuse de recibo al cliente desde soporte@
-7. Agente responde desde UI → cliente recibe desde soporte@
+5. Agente y supervisor reciben notificación desde correo1@
+6. Helpdesk envía acuse de recibo al cliente desde correo1@
+7. Agente responde desde UI → cliente recibe desde correo1@
 8. Si no se resuelve agente → HD Agent Lead recibe alerta
 ```
 
 ## Email routing
 
-| Doctype | Cuenta |
-|---------|--------|
-| HD Ticket | soporte@tecnocr.net |
-| CRM Lead, CRM Deal, Prospect | crm@tecnocr.net |
-| Quotation, Sales Order | crm@tecnocr.net |
-| Sales Invoice, Payment Entry | no-reply@tecnocr.net |
+| Doctype                      | Cuenta                  |
+| ---------------------------- | ----------------------- |
+| HD Ticket                    | correo1@dominio.com     |
+| CRM Lead, CRM Deal, Prospect | correo2@dominio.com     |
+| Quotation, Sales Order       | correo2@dominio.com     |
+| Sales Invoice, Payment Entry | no-responda@dominio.com |
 
 Editar `DOCTYPE_EMAIL_MAP` en `communication.py` para agregar rutas.
 
