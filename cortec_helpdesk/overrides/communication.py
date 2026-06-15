@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with CORTEC Helpdesk. If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations
 
 """
 cortec_helpdesk.overrides.communication
