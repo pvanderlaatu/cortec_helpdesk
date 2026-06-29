@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="cortec_helpdesk",
-    version="1.0.0",
+    version="1.0.1",
     description="Customizaciones de Frappe Helpdesk para CORTEC",
     author="Corporación de Tecnología CORTEC S.R.L.",
     author_email="soporte@tecnocr.net",

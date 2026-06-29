@@ -139,3 +139,40 @@ def route_email_by_doctype(doc, method=None):
         f"Email routing: {reference_doctype}/"
         f"{doc.get('reference_name')} → {target_email} ({account_name})"
     )
+
+
+def route_email_queue_by_doctype(doc, method=None):
+    """
+    Hook ``before_insert`` en Email Queue.
+
+    Frappe encola el email ANTES de crear la Communication, por lo que
+    el hook de Communication llega tarde para las notificaciones del
+    helpdesk (acknowledgments, etc.).  Este hook actúa directamente en
+    la cola y garantiza que el sender correcto llegue al servidor SMTP.
+    """
+    reference_doctype = doc.get("reference_doctype")
+    if not reference_doctype:
+        return
+
+    target_email = DOCTYPE_EMAIL_MAP.get(reference_doctype)
+    if not target_email:
+        return
+
+    account_name = _get_email_account_name(target_email)
+    if not account_name:
+        frappe.log_error(
+            title="CORTEC Email Routing (Queue): cuenta no encontrada",
+            message=(
+                f"Email Queue para {reference_doctype}/"
+                f"{doc.get('reference_name')}: la cuenta "
+                f"{target_email} no existe o no tiene saliente habilitado."
+            ),
+        )
+        return
+
+    doc.sender = target_email
+
+    frappe.logger("cortec_helpdesk").info(
+        f"Email Queue routing: {reference_doctype}/"
+        f"{doc.get('reference_name')} → {target_email}"
+    )
