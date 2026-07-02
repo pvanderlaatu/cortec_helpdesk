@@ -1,0 +1,15 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "Contact-custom_account_manager",
+  "dt": "Contact",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_account_manager",
+  "fieldtype": "Link",
+  "options": "User",
+  "label": "Encargado de Cuenta",
+  "insert_after": "email_id",
+  "description": "Agente responsable de este contacto. Usado por cortec_helpdesk para la asignación automática de tickets.",
+  "translatable": 0
+ }
+]

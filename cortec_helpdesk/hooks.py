@@ -15,6 +15,28 @@ app_email = "soporte@tecnocr.net"
 app_license = "AGPL-3.0"
 
 # ---------------------------------------------------------------------------
+# Apps de las que depende esta app. No incluye ERPNext (licencia GPL-3.0)
+# a propósito, para evitar combinar código GPL-3.0 con AGPL-3.0.
+# ---------------------------------------------------------------------------
+required_apps = [
+    "helpdesk",
+    "crm",
+    "frappe_whatsapp",
+    "whatsapp_chat",
+    "telephony",
+]
+
+# ---------------------------------------------------------------------------
+# Fixtures — datos exportados/importados con `bench migrate` / `export-fixtures`
+# ---------------------------------------------------------------------------
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [["name", "in", ["Contact-custom_account_manager"]]],
+    }
+]
+
+# ---------------------------------------------------------------------------
 # Permisos a nivel SQL — restringe qué tickets puede VER cada agente
 # ---------------------------------------------------------------------------
 permission_query_conditions = {

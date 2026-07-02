@@ -26,7 +26,6 @@ correcta según el doctype de origen.
 Esto garantiza que:
   - Respuestas a tickets     → salen por soporte@tecnocr.net
   - Emails de CRM            → salen por crm@tecnocr.net
-  - Facturas / cotizaciones  → salen por no-reply@tecnocr.net
   - Todo lo demás            → Default Outgoing (no-reply@)
 
 Configuración del mapeo
@@ -49,18 +48,9 @@ DOCTYPE_EMAIL_MAP = {
     # Frappe CRM
     "CRM Lead": "crm@tecnocr.net",
     "CRM Deal": "crm@tecnocr.net",
-    "Prospect": "crm@tecnocr.net",
-
-    # ERPNext Ventas
-    "Quotation": "crm@tecnocr.net",
-    "Sales Order": "crm@tecnocr.net",
-
-    # ERPNext Facturación y contabilidad
-    "Sales Invoice": "no-reply@tecnocr.net",
-    "Payment Entry": "no-reply@tecnocr.net",
 
     # Agregar más rutas según necesidad:
-    # "Purchase Order": "compras@tecnocr.net",
+    # "CRM Task": "crm@tecnocr.net",
 }
 
 

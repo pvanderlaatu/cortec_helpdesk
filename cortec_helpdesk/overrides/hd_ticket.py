@@ -25,7 +25,8 @@ Tres responsabilidades:
 1. get_permission_query_conditions  — filtra la lista de tickets a nivel SQL.
 2. has_permission                   — bloquea acceso directo por URL / API.
 3. auto_assign_ticket               — asigna el ticket al agente responsable
-                                      del cliente (vía account_manager) y
+                                      del contacto (vía el campo Custom Field
+                                      "custom_account_manager" en Contact) y
                                       notifica al agente y supervisores.
 
 Roles reconocidos
@@ -151,7 +152,7 @@ def auto_assign_ticket(doc, method: str = None) -> None:
 def _resolve_agent_for_ticket(doc) -> str | None:
     """
     Resuelve el agente responsable siguiendo la cadena:
-      email remitente → Contacto → Cliente → account_manager
+      email remitente → Contacto → Contact.custom_account_manager
     """
     sender_email = _get_sender_email(doc)
     if not sender_email:
@@ -168,26 +169,16 @@ def _resolve_agent_for_ticket(doc) -> str | None:
         )
         return None
 
-    customer_name = _find_customer_for_contact(contact_name)
-    if not customer_name:
-        frappe.log_error(
-            title="CORTEC Helpdesk: cliente no vinculado",
-            message=(
-                f"Ticket {doc.name}: el contacto {contact_name} "
-                f"no tiene cliente asociado."
-            ),
-        )
-        return None
-
     account_manager = frappe.db.get_value(
-        "Customer", customer_name, "account_manager"
+        "Contact", contact_name, "custom_account_manager"
     )
     if not account_manager:
         frappe.log_error(
             title="CORTEC Helpdesk: account_manager no configurado",
             message=(
-                f"Ticket {doc.name}: el cliente {customer_name} "
-                f"no tiene account_manager asignado."
+                f"Ticket {doc.name}: el contacto {contact_name} "
+                f"no tiene account_manager asignado (campo 'Encargado de "
+                f"Cuenta' en su ficha de Contacto)."
             ),
         )
         return None
@@ -216,19 +207,6 @@ def _find_contact_by_email(email: str) -> str | None:
     ) or None
 
 
-def _find_customer_for_contact(contact_name: str) -> str | None:
-    """Busca el Cliente vinculado a un Contacto via Dynamic Link."""
-    return frappe.db.get_value(
-        "Dynamic Link",
-        {
-            "parenttype": "Contact",
-            "parent": contact_name,
-            "link_doctype": "Customer",
-        },
-        "link_name",
-    ) or None
-
-
 # ---------------------------------------------------------------------------
 # 3b. Asignación y notificaciones
 # ---------------------------------------------------------------------------
@@ -246,7 +224,7 @@ def _assign_ticket_to_agent(doc, agent: str) -> None:
                 "doctype": "HD Ticket",
                 "name": doc.name,
                 "assign_to": [agent],
-                "description": "Asignación automática por account_manager.",
+                "description": "Asignación automática por Encargado de Cuenta del contacto.",
                 "notify": False,
             }
         )
@@ -408,8 +386,8 @@ def _notify_unassigned_ticket(doc) -> None:
             </tr>
             <tr>
                 <td style="padding: 5px 15px 5px 0; font-weight: bold;">Motivo:</td>
-                <td style="padding: 5px 0;">No se encontró account_manager
-                    para este cliente. Revise Error Log para detalles.</td>
+                <td style="padding: 5px 0;">No se encontró Encargado de
+                    Cuenta para este contacto. Revise Error Log para detalles.</td>
             </tr>
         </table>
         <p><a href="/helpdesk/tickets/{doc.name}">Asignar ticket manualmente</a></p>
