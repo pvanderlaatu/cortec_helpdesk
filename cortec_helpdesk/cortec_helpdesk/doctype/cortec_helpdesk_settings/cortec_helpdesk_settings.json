@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "creation": "2026-07-06 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "helpdesk_section",
+  "helpdesk_email_account",
+  "crm_section",
+  "crm_email_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "helpdesk_section",
+   "fieldtype": "Section Break",
+   "label": "Correo de Frappe Helpdesk"
+  },
+  {
+   "description": "Cuenta usada para enviar respuestas de HD Ticket y las notificaciones de asignación automática. Solo se listan cuentas con 'Habilitar correos salientes' activado.",
+   "fieldname": "helpdesk_email_account",
+   "fieldtype": "Link",
+   "label": "Cuenta de correo para Helpdesk",
+   "options": "Email Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "crm_section",
+   "fieldtype": "Section Break",
+   "label": "Correo de Frappe CRM"
+  },
+  {
+   "description": "Cuenta usada para enviar correos vinculados a CRM Lead / CRM Deal. Solo se listan cuentas con 'Habilitar correos salientes' activado.",
+   "fieldname": "crm_email_account",
+   "fieldtype": "Link",
+   "label": "Cuenta de correo para CRM",
+   "options": "Email Account",
+   "reqd": 1
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-06 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cortec Helpdesk",
+ "name": "CORTEC Helpdesk Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 0,
+   "print": 1,
+   "read": 1,
+   "role": "HD Manager",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

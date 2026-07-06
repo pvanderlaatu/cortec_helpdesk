@@ -24,61 +24,40 @@ Intercepta cada Communication saliente y asigna la cuenta de correo
 correcta según el doctype de origen.
 
 Esto garantiza que:
-  - Respuestas a tickets     → salen por soporte@tecnocr.net
-  - Emails de CRM            → salen por crm@tecnocr.net
+  - Respuestas a tickets     → salen por la cuenta configurada para Helpdesk
+  - Emails de CRM            → salen por la cuenta configurada para CRM
   - Todo lo demás            → Default Outgoing (no-reply@)
 
-Configuración del mapeo
------------------------
-Editar DOCTYPE_EMAIL_MAP para agregar nuevas rutas.
-Reiniciar bench después de cambios.
+Las direcciones de correo NO están hardcodeadas: se eligen desde la
+interfaz web en CORTEC Helpdesk Settings (ver
+cortec_helpdesk.doctype.cortec_helpdesk_settings). Editar
+DOCTYPE_CATEGORY_MAP solo si se necesita enrutar un doctype nuevo hacia
+una de esas dos categorías.
 """
 
 import frappe
 
+from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_helpdesk_settings import (
+    get_configured_email,
+    get_configured_email_account,
+)
+
 
 # ---------------------------------------------------------------------------
-# Mapeo doctype → dirección de correo
+# Mapeo doctype → categoría ("helpdesk" o "crm")
 # ---------------------------------------------------------------------------
 
-DOCTYPE_EMAIL_MAP = {
+DOCTYPE_CATEGORY_MAP = {
     # Frappe Helpdesk
-    "HD Ticket": "soporte@tecnocr.net",
+    "HD Ticket": "helpdesk",
 
     # Frappe CRM
-    "CRM Lead": "crm@tecnocr.net",
-    "CRM Deal": "crm@tecnocr.net",
+    "CRM Lead": "crm",
+    "CRM Deal": "crm",
 
     # Agregar más rutas según necesidad:
-    # "CRM Task": "crm@tecnocr.net",
+    # "CRM Task": "crm",
 }
-
-
-# ---------------------------------------------------------------------------
-# Cache: email → nombre de Email Account en Frappe
-# ---------------------------------------------------------------------------
-
-_email_account_cache = {}
-
-
-def _get_email_account_name(email_address: str) -> str | None:
-    """
-    Dado un email como 'soporte@tecnocr.net', retorna el nombre
-    del documento Email Account en Frappe.
-    """
-    if email_address in _email_account_cache:
-        return _email_account_cache[email_address]
-
-    account_name = frappe.db.get_value(
-        "Email Account",
-        {"email_id": email_address, "enable_outgoing": 1},
-        "name",
-    )
-
-    if account_name:
-        _email_account_cache[email_address] = account_name
-
-    return account_name
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +71,8 @@ def route_email_by_doctype(doc, method=None):
     Solo actúa cuando:
       1. Es un email saliente (sent_or_received == 'Sent')
       2. Tiene un reference_doctype en el mapeo
-      3. La cuenta de email existe y tiene saliente habilitado
+      3. Hay una cuenta configurada en CORTEC Helpdesk Settings para
+         esa categoría
 
     Si alguna condición falla, no hace nada y Frappe usa
     su lógica por defecto (Default Outgoing).
@@ -106,18 +86,20 @@ def route_email_by_doctype(doc, method=None):
     if not reference_doctype:
         return
 
-    target_email = DOCTYPE_EMAIL_MAP.get(reference_doctype)
-    if not target_email:
+    category = DOCTYPE_CATEGORY_MAP.get(reference_doctype)
+    if not category:
         return
 
-    account_name = _get_email_account_name(target_email)
-    if not account_name:
+    account_name = get_configured_email_account(category)
+    target_email = get_configured_email(category)
+    if not account_name or not target_email:
         frappe.log_error(
-            title="CORTEC Email Routing: cuenta no encontrada",
+            title="CORTEC Email Routing: cuenta no configurada",
             message=(
                 f"Communication para {reference_doctype}/"
-                f"{doc.get('reference_name')}: la cuenta "
-                f"{target_email} no existe o no tiene saliente habilitado."
+                f"{doc.get('reference_name')}: no hay una cuenta de correo "
+                f"configurada para la categoría '{category}' en "
+                f"CORTEC Helpdesk Settings."
             ),
         )
         return
@@ -144,18 +126,19 @@ def route_email_queue_by_doctype(doc, method=None):
     if not reference_doctype:
         return
 
-    target_email = DOCTYPE_EMAIL_MAP.get(reference_doctype)
-    if not target_email:
+    category = DOCTYPE_CATEGORY_MAP.get(reference_doctype)
+    if not category:
         return
 
-    account_name = _get_email_account_name(target_email)
-    if not account_name:
+    target_email = get_configured_email(category)
+    if not target_email:
         frappe.log_error(
-            title="CORTEC Email Routing (Queue): cuenta no encontrada",
+            title="CORTEC Email Routing (Queue): cuenta no configurada",
             message=(
                 f"Email Queue para {reference_doctype}/"
-                f"{doc.get('reference_name')}: la cuenta "
-                f"{target_email} no existe o no tiene saliente habilitado."
+                f"{doc.get('reference_name')}: no hay una cuenta de correo "
+                f"configurada para la categoría '{category}' en "
+                f"CORTEC Helpdesk Settings."
             ),
         )
         return

@@ -40,6 +40,10 @@ Roles reconocidos
 import frappe
 from frappe import _
 
+from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_helpdesk_settings import (
+    get_configured_email,
+)
+
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -47,7 +51,14 @@ from frappe import _
 
 FULL_ACCESS_ROLES = {"System Manager", "HD Manager", "HD Agent Lead"}
 AGENT_ROLE = "HD Agent"
-HELPDESK_EMAIL = "soporte@tecnocr.net"
+
+
+def _get_helpdesk_sender() -> str | None:
+    """
+    Dirección desde la que se envían las notificaciones de asignación,
+    configurada en CORTEC Helpdesk Settings.
+    """
+    return get_configured_email("helpdesk")
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +296,7 @@ def _send_agent_notification(doc, agent: str) -> None:
 
     frappe.sendmail(
         recipients=[agent],
-        sender=HELPDESK_EMAIL,
+        sender=_get_helpdesk_sender(),
         subject=subject,
         message=message,
         reference_doctype="HD Ticket",
@@ -341,7 +352,7 @@ def _send_supervisor_notification(doc, agent: str) -> None:
 
     frappe.sendmail(
         recipients=agent_leads,
-        sender=HELPDESK_EMAIL,
+        sender=_get_helpdesk_sender(),
         subject=subject,
         message=message,
         reference_doctype="HD Ticket",
@@ -397,7 +408,7 @@ def _notify_unassigned_ticket(doc) -> None:
 
         frappe.sendmail(
             recipients=agent_leads,
-            sender=HELPDESK_EMAIL,
+            sender=_get_helpdesk_sender(),
             subject=subject,
             message=message,
             reference_doctype="HD Ticket",
