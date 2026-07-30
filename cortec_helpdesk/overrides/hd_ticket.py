@@ -24,10 +24,12 @@ Tres responsabilidades:
 
 1. get_permission_query_conditions  — filtra la lista de tickets a nivel SQL.
 2. has_permission                   — bloquea acceso directo por URL / API.
-3. auto_assign_ticket               — asigna el ticket al agente responsable
-                                      del contacto (vía el campo Custom Field
-                                      "custom_account_manager" en Contact) y
-                                      notifica al agente y supervisores.
+3. auto_assign_ticket               — asigna el ticket al agente responsable,
+                                      vía el campo Custom Field
+                                      "custom_account_manager" en Contact
+                                      (override por persona) o en HD Customer
+                                      (encargado por defecto de la empresa),
+                                      y notifica al agente y supervisores.
 
 Roles reconocidos
 -----------------
@@ -163,7 +165,10 @@ def auto_assign_ticket(doc, method: str = None) -> None:
 def _resolve_agent_for_ticket(doc) -> str | None:
     """
     Resuelve el agente responsable siguiendo la cadena:
-      email remitente → Contacto → Contact.custom_account_manager
+      1. email remitente → Contacto → Contact.custom_account_manager
+         (override específico de esa persona, si está configurado)
+      2. HD Ticket.customer → HD Customer.custom_account_manager
+         (encargado por defecto de la empresa, si el Contacto no tiene uno)
     """
     sender_email = _get_sender_email(doc)
     if not sender_email:
@@ -183,18 +188,33 @@ def _resolve_agent_for_ticket(doc) -> str | None:
     account_manager = frappe.db.get_value(
         "Contact", contact_name, "custom_account_manager"
     )
+    if account_manager:
+        return account_manager
+
+    account_manager = _get_customer_account_manager(doc)
     if not account_manager:
         frappe.log_error(
             title="CORTEC Helpdesk: account_manager no configurado",
             message=(
-                f"Ticket {doc.name}: el contacto {contact_name} "
-                f"no tiene account_manager asignado (campo 'Encargado de "
-                f"Cuenta' en su ficha de Contacto)."
+                f"Ticket {doc.name}: ni el contacto {contact_name} ni el "
+                f"cliente {doc.get('customer') or '(sin cliente)'} tienen "
+                f"un 'Encargado de Cuenta' configurado."
             ),
         )
         return None
 
     return account_manager
+
+
+def _get_customer_account_manager(doc) -> str | None:
+    """Encargado de Cuenta configurado en el HD Customer del ticket."""
+    customer = doc.get("customer")
+    if not customer:
+        return None
+
+    return frappe.db.get_value(
+        "HD Customer", customer, "custom_account_manager"
+    )
 
 
 def _get_sender_email(doc) -> str | None:

@@ -32,7 +32,16 @@ required_apps = [
 fixtures = [
     {
         "doctype": "Custom Field",
-        "filters": [["name", "in", ["Contact-custom_account_manager"]]],
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Contact-custom_account_manager",
+                    "HD Customer-custom_account_manager",
+                ],
+            ]
+        ],
     }
 ]
 

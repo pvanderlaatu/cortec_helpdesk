@@ -9,7 +9,20 @@
   "options": "User",
   "label": "Encargado de Cuenta",
   "insert_after": "email_id",
-  "description": "Agente responsable de este contacto. Usado por cortec_helpdesk para la asignación automática de tickets.",
+  "description": "Agente responsable de este contacto en particular. Tiene prioridad sobre el Encargado de Cuenta del Cliente. Usado por cortec_helpdesk para la asignación automática de tickets.",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "HD Customer-custom_account_manager",
+  "dt": "HD Customer",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_account_manager",
+  "fieldtype": "Link",
+  "options": "User",
+  "label": "Encargado de Cuenta",
+  "insert_after": "domain",
+  "description": "Agente responsable de esta empresa por defecto. Se usa si el Contacto que escribió el ticket no tiene su propio Encargado de Cuenta configurado.",
   "translatable": 0
  }
 ]
