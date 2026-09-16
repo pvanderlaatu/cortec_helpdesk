@@ -72,4 +72,7 @@ doc_events = {
     "Email Queue": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_queue_by_doctype",
     },
+    "WhatsApp Message": {
+        "after_insert": "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
+    },
 }
