@@ -39,6 +39,7 @@ fixtures = [
                 [
                     "Contact-custom_account_manager",
                     "HD Customer-custom_account_manager",
+                    "CRM Lead-custom_comentarios",
                 ],
             ]
         ],

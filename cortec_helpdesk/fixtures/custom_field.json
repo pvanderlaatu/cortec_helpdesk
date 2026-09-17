@@ -24,5 +24,16 @@
   "insert_after": "domain",
   "description": "Agente responsable de esta empresa por defecto. Se usa si el Contacto que escribió el ticket no tiene su propio Encargado de Cuenta configurado.",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-custom_comentarios",
+  "dt": "CRM Lead",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_comentarios",
+  "fieldtype": "Small Text",
+  "label": "Comentarios",
+  "insert_after": "organization",
+  "translatable": 0
  }
 ]
