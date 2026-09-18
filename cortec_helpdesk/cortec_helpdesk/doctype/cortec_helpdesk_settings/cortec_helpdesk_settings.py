@@ -11,6 +11,12 @@ FIELD_BY_CATEGORY = {
     "crm": "crm_email_account",
 }
 
+# Grupo que despliega esta misma app en fixtures/email_group.json. Se usa
+# como respaldo si el campo de Settings quedó vacío, para que la
+# validación de consentimiento publicitario no quede desactivada por
+# omisión en un sitio recién migrado.
+DEFAULT_PROMOTIONS_EMAIL_GROUP = "Promociones CORTEC"
+
 
 class CORTECHelpdeskSettings(Document):
     def validate(self):
@@ -62,3 +68,15 @@ def get_configured_email_account(category: str) -> str | None:
 
     settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
     return settings.get(fieldname) or None
+
+
+def get_promotions_email_group() -> str:
+    """
+    Devuelve el Email Group configurado para correos promocionales.
+
+    Si no está configurado, cae a DEFAULT_PROMOTIONS_EMAIL_GROUP en vez
+    de devolver None: así la validación de consentimiento sigue activa
+    aunque nadie haya tocado Settings todavía.
+    """
+    settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
+    return settings.get("promotions_email_group") or DEFAULT_PROMOTIONS_EMAIL_GROUP

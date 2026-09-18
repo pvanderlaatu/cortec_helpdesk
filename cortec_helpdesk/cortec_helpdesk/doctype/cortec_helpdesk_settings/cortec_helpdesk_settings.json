@@ -7,7 +7,9 @@
   "helpdesk_section",
   "helpdesk_email_account",
   "crm_section",
-  "crm_email_account"
+  "crm_email_account",
+  "promotions_section",
+  "promotions_email_group"
  ],
  "fields": [
   {
@@ -35,11 +37,23 @@
    "label": "Cuenta de correo para CRM",
    "options": "Email Account",
    "reqd": 1
+  },
+  {
+   "fieldname": "promotions_section",
+   "fieldtype": "Section Break",
+   "label": "Lista de Correos Promocionales"
+  },
+  {
+   "description": "Email Group al que se suscriben los visitantes que aceptan recibir publicidad. Solo las altas en esta lista exigen consentimiento registrado (CRM Lead o Contacto con 'Acepta Correos Promocionales'). Si se deja vacío, se usa 'Promociones CORTEC'.",
+   "fieldname": "promotions_email_group",
+   "fieldtype": "Link",
+   "label": "Lista de correos promocionales",
+   "options": "Email Group"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-06 00:00:00.000000",
+ "modified": "2026-09-18 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Cortec Helpdesk",
  "name": "CORTEC Helpdesk Settings",

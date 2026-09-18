@@ -28,13 +28,14 @@ consentimiento registrado en ninguna parte.
 
 require_registered_consent — en validate: al agregar un correo a la
                               lista promocional, exige que exista un
-                              CRM Lead con ese correo y con
+                              CRM Lead o un Contact con ese correo y con
                               custom_acepta_promociones marcado.
 
 Alcance deliberadamente acotado:
 
-  - Solo aplica a PROMOTIONS_EMAIL_GROUP. Otras listas (avisos internos,
-    transaccionales) no requieren consentimiento publicitario.
+  - Solo aplica al Email Group configurado en CORTEC Helpdesk Settings
+    (campo "Lista de correos promocionales"). Otras listas (avisos
+    internos, transaccionales) no requieren consentimiento publicitario.
   - Solo valida altas nuevas. Las actualizaciones pasan sin revisión, de
     modo que una desuscripción NUNCA pueda fallar por esta validación:
     bloquear una revocación sería peor —legal y éticamente— que el
@@ -44,9 +45,10 @@ Alcance deliberadamente acotado:
 import frappe
 from frappe import _
 
-# Debe coincidir con el título del Email Group que despliega esta misma
-# app en fixtures/email_group.json.
-PROMOTIONS_EMAIL_GROUP = "Promociones CORTEC"
+from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_helpdesk_settings import (
+    get_promotions_email_group,
+)
+from cortec_helpdesk.overrides.consent import has_registered_consent
 
 
 def require_registered_consent(doc, method: str = None) -> None:
@@ -56,7 +58,8 @@ def require_registered_consent(doc, method: str = None) -> None:
     Como el hook de CRM Lead, no va envuelto en try/except: el
     frappe.throw es el comportamiento deseado.
     """
-    if doc.get("email_group") != PROMOTIONS_EMAIL_GROUP:
+    promotions_group = get_promotions_email_group()
+    if doc.get("email_group") != promotions_group:
         return
 
     # Una desuscripción es una actualización de este mismo documento y
@@ -71,25 +74,15 @@ def require_registered_consent(doc, method: str = None) -> None:
     if not email:
         return
 
-    if _has_registered_consent(email):
+    if has_registered_consent(email):
         return
 
     frappe.throw(
         _(
             "No se puede agregar {0} a la lista '{1}': no existe ningún "
-            "CRM Lead con ese correo que tenga registrado el "
+            "CRM Lead ni Contacto con ese correo que tenga registrado el "
             "consentimiento publicitario. Registre primero el "
-            "consentimiento en el Lead (marcando 'Acepta Correos "
-            "Promocionales' e indicando su origen)."
-        ).format(email, PROMOTIONS_EMAIL_GROUP)
-    )
-
-
-def _has_registered_consent(email: str) -> bool:
-    """True si algún CRM Lead con ese correo tiene el consentimiento marcado."""
-    return bool(
-        frappe.db.exists(
-            "CRM Lead",
-            {"email": email, "custom_acepta_promociones": 1},
-        )
+            "consentimiento (marcando 'Acepta Correos Promocionales' e "
+            "indicando su origen)."
+        ).format(email, promotions_group)
     )

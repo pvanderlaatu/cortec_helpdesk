@@ -43,6 +43,8 @@ fixtures = [
                     "CRM Lead-custom_consentimiento",
                     "CRM Lead-custom_acepta_promociones",
                     "CRM Lead-custom_promociones_origen",
+                    "Contact-custom_acepta_promociones",
+                    "Contact-custom_promociones_origen",
                 ],
             ]
         ],
@@ -84,7 +86,10 @@ doc_events = {
         "after_insert": "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
     },
     "CRM Lead": {
-        "validate": "cortec_helpdesk.overrides.crm_lead.require_promotions_consent_origin",
+        "validate": "cortec_helpdesk.overrides.consent.require_promotions_consent_origin",
+    },
+    "Contact": {
+        "validate": "cortec_helpdesk.overrides.consent.require_promotions_consent_origin",
     },
     "Email Group Member": {
         "validate": "cortec_helpdesk.overrides.email_group_member.require_registered_consent",

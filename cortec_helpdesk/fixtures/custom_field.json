@@ -74,5 +74,32 @@
   "mandatory_depends_on": "eval:doc.custom_acepta_promociones",
   "description": "Canal y fecha por los que el titular autorizó recibir publicidad (ej. 'Formulario web tecnocr.net 2026-09-18' o 'Telefónico 2026-09-18, registrado por jperez'). Obligatorio cuando 'Acepta Correos Promocionales' está marcado: bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el responsable de la base de datos.",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Contact-custom_acepta_promociones",
+  "dt": "Contact",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_acepta_promociones",
+  "fieldtype": "Check",
+  "label": "Acepta Correos Promocionales",
+  "insert_after": "custom_account_manager",
+  "default": "0",
+  "description": "Marcado si el contacto autorizó recibir correos promocionales. Equivalente al campo del mismo nombre en CRM Lead, para contactos que nunca fueron Leads.",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Contact-custom_promociones_origen",
+  "dt": "Contact",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_promociones_origen",
+  "fieldtype": "Small Text",
+  "label": "Origen del Consentimiento Publicitario",
+  "insert_after": "custom_acepta_promociones",
+  "depends_on": "eval:doc.custom_acepta_promociones",
+  "mandatory_depends_on": "eval:doc.custom_acepta_promociones",
+  "description": "Canal y fecha por los que el contacto autorizó recibir publicidad. Obligatorio cuando 'Acepta Correos Promocionales' está marcado: bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el responsable de la base de datos.",
+  "translatable": 0
  }
 ]
