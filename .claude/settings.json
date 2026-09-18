@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find / -path /proc -prune -o -name \"queue.py\" -path \"*email*\" -print 2>/dev/null | grep -i frappe)",
+      "Read(//c//**)",
+      "Bash(xargs grep -liE \"acknowledg|auto.?reply|notify|send_mail|sendmail\")",
+      "Bash(cd \"c:\\\\Users\\\\pierr\\\\Documentos\\\\Bancos Y Trabajo\\\\Empresas personales\\\\CORTEC\\\\Proyectos\\\\2026\\\\Frappe\" && ls -la 2>/dev/null; find . -maxdepth 3 -iname \"crm\" -o -iname \"erpnext\" -o -iname \"helpdesk\" 2>/dev/null | head -20)",
+      "Read(//c/Users/pierr/Documentos/Bancos Y Trabajo/Empresas personales/CORTEC/Proyectos/2026/Frappe/**)",
+      "Bash(python -c \"import ast; [ast.parse\\(open\\(f, encoding='utf-8'\\).read\\(\\), f\\) for f in ['cortec_helpdesk/hooks.py','cortec_helpdesk/overrides/hd_ticket.py','cortec_helpdesk/overrides/communication.py']]; print\\('syntax OK'\\)\")",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}
