@@ -86,4 +86,7 @@ doc_events = {
     "CRM Lead": {
         "validate": "cortec_helpdesk.overrides.crm_lead.require_promotions_consent_origin",
     },
+    "Email Group Member": {
+        "validate": "cortec_helpdesk.overrides.email_group_member.require_registered_consent",
+    },
 }
