@@ -47,5 +47,18 @@
   "insert_after": "custom_comentarios",
   "description": "Evidencia de que el visitante aceptó la Política de Privacidad/Términos al enviar el formulario web: fecha/hora del envío y versión o URL de la política vigente en ese momento. Lo llena el Worker leads-intake.",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-custom_acepta_promociones",
+  "dt": "CRM Lead",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_acepta_promociones",
+  "fieldtype": "Check",
+  "label": "Acepta Correos Promocionales",
+  "insert_after": "custom_consentimiento",
+  "default": "0",
+  "description": "Marcado si el visitante aceptó voluntariamente recibir correos promocionales al enviar el formulario web (checkbox opcional, separado del consentimiento obligatorio de políticas). Lo llena el Worker leads-intake.",
+  "translatable": 0
  }
 ]

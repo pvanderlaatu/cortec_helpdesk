@@ -41,10 +41,15 @@ fixtures = [
                     "HD Customer-custom_account_manager",
                     "CRM Lead-custom_comentarios",
                     "CRM Lead-custom_consentimiento",
+                    "CRM Lead-custom_acepta_promociones",
                 ],
             ]
         ],
-    }
+    },
+    {
+        "doctype": "Email Group",
+        "filters": [["title", "=", "Promociones CORTEC"]],
+    },
 ]
 
 # ---------------------------------------------------------------------------
