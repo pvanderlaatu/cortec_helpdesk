@@ -35,5 +35,17 @@
   "label": "Comentarios",
   "insert_after": "organization",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "CRM Lead-custom_consentimiento",
+  "dt": "CRM Lead",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_consentimiento",
+  "fieldtype": "Small Text",
+  "label": "Consentimiento de Políticas",
+  "insert_after": "custom_comentarios",
+  "description": "Evidencia de que el visitante aceptó la Política de Privacidad/Términos al enviar el formulario web: fecha/hora del envío y versión o URL de la política vigente en ese momento. Lo llena el Worker leads-intake.",
+  "translatable": 0
  }
 ]
