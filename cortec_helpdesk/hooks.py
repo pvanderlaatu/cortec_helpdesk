@@ -42,6 +42,7 @@ fixtures = [
                     "CRM Lead-custom_comentarios",
                     "CRM Lead-custom_consentimiento",
                     "CRM Lead-custom_acepta_promociones",
+                    "CRM Lead-custom_promociones_origen",
                 ],
             ]
         ],
@@ -81,5 +82,8 @@ doc_events = {
     },
     "WhatsApp Message": {
         "after_insert": "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
+    },
+    "CRM Lead": {
+        "validate": "cortec_helpdesk.overrides.crm_lead.require_promotions_consent_origin",
     },
 }
