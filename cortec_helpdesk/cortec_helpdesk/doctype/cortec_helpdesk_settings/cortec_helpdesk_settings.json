@@ -9,7 +9,16 @@
   "crm_section",
   "crm_email_account",
   "promotions_section",
-  "promotions_email_group"
+  "promotions_email_group",
+  "telegram_section",
+  "telegram_enabled",
+  "telegram_bot_token",
+  "telegram_throttle_minutes",
+  "telegram_column",
+  "telegram_notify_whatsapp",
+  "telegram_notify_email",
+  "telegram_agents_section",
+  "telegram_agents"
  ],
  "fields": [
   {
@@ -49,11 +58,73 @@
    "fieldtype": "Link",
    "label": "Lista de correos promocionales",
    "options": "Email Group"
+  },
+  {
+   "collapsible": 1,
+   "description": "Envía al móvil del agente asignado un aviso por Telegram (con sonido) cuando entra un WhatsApp o un correo de un cliente. El aviso nunca incluye el texto del mensaje.",
+   "fieldname": "telegram_section",
+   "fieldtype": "Section Break",
+   "label": "Avisos por Telegram"
+  },
+  {
+   "default": "0",
+   "fieldname": "telegram_enabled",
+   "fieldtype": "Check",
+   "label": "Habilitar avisos por Telegram"
+  },
+  {
+   "depends_on": "telegram_enabled",
+   "description": "Token del bot entregado por @BotFather.",
+   "fieldname": "telegram_bot_token",
+   "fieldtype": "Password",
+   "label": "Token del bot",
+   "mandatory_depends_on": "telegram_enabled"
+  },
+  {
+   "default": "2",
+   "depends_on": "telegram_enabled",
+   "description": "Si un cliente envía varios mensajes seguidos, el agente recibe un solo aviso por documento dentro de este intervalo. 0 = avisar cada mensaje.",
+   "fieldname": "telegram_throttle_minutes",
+   "fieldtype": "Int",
+   "label": "Agrupar avisos (minutos)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "telegram_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "depends_on": "telegram_enabled",
+   "fieldname": "telegram_notify_whatsapp",
+   "fieldtype": "Check",
+   "label": "Avisar WhatsApp entrantes"
+  },
+  {
+   "default": "1",
+   "depends_on": "telegram_enabled",
+   "description": "Correos recibidos en CRM Lead, CRM Deal y HD Ticket.",
+   "fieldname": "telegram_notify_email",
+   "fieldtype": "Check",
+   "label": "Avisar correos entrantes"
+  },
+  {
+   "depends_on": "telegram_enabled",
+   "description": "Cada agente debe abrir el bot en Telegram y pulsar /start; luego use 'Detectar chats' (dentro de las 24 h siguientes) para agregarlo.",
+   "fieldname": "telegram_agents_section",
+   "fieldtype": "Section Break",
+   "label": "Agentes vinculados"
+  },
+  {
+   "fieldname": "telegram_agents",
+   "fieldtype": "Table",
+   "label": "Agentes",
+   "options": "CORTEC Telegram Agent"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-18 00:00:00.000000",
+ "modified": "2026-09-21 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Cortec Helpdesk",
  "name": "CORTEC Helpdesk Settings",

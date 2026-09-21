@@ -9,7 +9,8 @@ app_publisher = "Corporación de Tecnología CORTEC S.R.L."
 app_description = (
     "Customizaciones de Frappe Helpdesk para CORTEC: "
     "control de visibilidad por agente, asignación automática "
-    "de tickets por cliente, y email routing por doctype."
+    "de tickets por cliente, email routing por doctype y avisos "
+    "por Telegram de WhatsApp y correos entrantes."
 )
 app_email = "soporte@tecnocr.net"
 app_license = "AGPL-3.0"
@@ -78,12 +79,18 @@ doc_events = {
     },
     "Communication": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_by_doctype",
+        "after_insert": "cortec_helpdesk.overrides.telegram.on_communication",
     },
     "Email Queue": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_queue_by_doctype",
     },
     "WhatsApp Message": {
-        "after_insert": "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
+        # El orden importa: el aviso por Telegram debe ver el Lead que
+        # route_unclaimed_message crea para mensajes sin vínculo abierto.
+        "after_insert": [
+            "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
+            "cortec_helpdesk.overrides.telegram.on_whatsapp_message",
+        ],
     },
     "CRM Lead": {
         "validate": "cortec_helpdesk.overrides.consent.require_promotions_consent_origin",

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 from __future__ import annotations
 
+import re
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -22,6 +24,26 @@ class CORTECHelpdeskSettings(Document):
     def validate(self):
         self._validate_outgoing_enabled("helpdesk_email_account")
         self._validate_outgoing_enabled("crm_email_account")
+        self._validate_telegram()
+
+    def _validate_telegram(self) -> None:
+        if self.telegram_enabled and not self.telegram_bot_token:
+            frappe.throw(_("Indique el token del bot para habilitar los avisos por Telegram."))
+
+        seen_users = set()
+        for row in self.telegram_agents:
+            row.chat_id = (row.chat_id or "").strip()
+            if not re.fullmatch(r"-?\d+", row.chat_id):
+                frappe.throw(
+                    _("Fila {0}: el Chat ID de Telegram '{1}' no es válido (debe ser numérico).").format(
+                        row.idx, row.chat_id
+                    )
+                )
+            if row.user in seen_users:
+                frappe.throw(
+                    _("Fila {0}: el agente {1} ya está en la tabla.").format(row.idx, row.user)
+                )
+            seen_users.add(row.user)
 
     def _validate_outgoing_enabled(self, fieldname: str) -> None:
         account = self.get(fieldname)
@@ -80,3 +102,14 @@ def get_promotions_email_group() -> str:
     """
     settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
     return settings.get("promotions_email_group") or DEFAULT_PROMOTIONS_EMAIL_GROUP
+
+
+def get_telegram_settings():
+    """
+    Devuelve CORTEC Helpdesk Settings (cacheado) si los avisos por
+    Telegram están habilitados, o None si no lo están.
+    """
+    settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
+    if not settings.get("telegram_enabled"):
+        return None
+    return settings

@@ -15,6 +15,8 @@ AGPL-3.0-or-later — Ver archivo [LICENSE](LICENSE).
    `email remitente → Contacto → Cliente → account_manager`
 3. **Email routing por doctype** — fuerza que cada email saliente use la
    cuenta de correo correcta según el módulo de origen.
+4. **Avisos por Telegram** — avisa con sonido en el móvil del agente
+   asignado cuando entra un WhatsApp o un correo de un cliente (opcional).
 
 ## Estructura
 
@@ -30,7 +32,8 @@ cortec_helpdesk/
     └── overrides/
         ├── __init__.py
         ├── hd_ticket.py         # Permisos y asignación automática
-        └── communication.py     # Email routing por doctype
+        ├── communication.py     # Email routing por doctype
+        └── telegram.py          # Avisos por Telegram (WhatsApp y correo)
 ```
 
 ## Instalación
@@ -93,6 +96,52 @@ ERPNext → CRM → Contactos → [Contacto]
 Configuración del Sistema
   → Run Jobs only Daily if Inactive For (Days) → 365
 ```
+
+### 6. Avisos por Telegram (opcional)
+
+Frappe CRM y Helpdesk solo avisan en pantalla. Con esta opción, el agente
+asignado recibe un mensaje de un bot de Telegram (con sonido, aunque el
+móvil esté bloqueado) cuando entra:
+
+- un **WhatsApp** de un cliente en un CRM Lead / CRM Deal, o
+- un **correo** recibido en un CRM Lead, CRM Deal o HD Ticket.
+
+El aviso solo incluye el documento, el nombre del cliente y un enlace;
+**nunca el texto del mensaje ni el asunto**. Los correos enviados por los
+propios agentes no generan aviso.
+
+**Configuración**
+
+1. En Telegram, hablar con **@BotFather** → `/newbot` y copiar el token.
+2. `CORTEC Helpdesk Settings` → **Avisos por Telegram**:
+   - ✅ Habilitar avisos por Telegram y pegar el token.
+   - Elegir qué avisar: WhatsApp y/o correos.
+   - *Agrupar avisos (minutos)*: varios mensajes seguidos del mismo
+     cliente generan un solo aviso por agente y documento (0 = todos).
+   - Guardar.
+3. Cada agente abre el bot en Telegram y pulsa **/start**.
+4. Dentro de las 24 h siguientes: **Telegram → Detectar chats**, elegir el
+   chat y el agente → Agregar. En la tabla se puede desactivar WhatsApp o
+   correo por agente.
+5. **Telegram → Enviar prueba** para confirmar que llega a cada móvil.
+
+El sitio debe tener `host_name` en `site_config.json` para que los
+enlaces del aviso apunten al dominio correcto, y los workers de la cola
+`short` deben estar activos.
+
+**En el móvil del agente**
+
+- Poner un tono propio al chat del bot (Telegram → chat → Notificaciones →
+  Sonido) y no silenciarlo.
+- Android: marcar el chat como *conversación prioritaria* si debe sonar con
+  No molestar activo.
+- iOS: con el interruptor de silencio solo vibra; permitir Telegram en los
+  modos de Concentración que use.
+- Xiaomi/Redmi/POCO, Oppo/Realme/OnePlus, Vivo, Honor, Huawei: activar el
+  inicio automático de Telegram, batería "Sin restricciones" y bloquear la
+  app en recientes (ver <https://dontkillmyapp.com>).
+- Si el agente tiene Telegram abierto en el ordenador, Telegram puede no
+  avisar en el móvil mientras tanto.
 
 ## Flujo de un ticket
 
