@@ -18,7 +18,13 @@
   "telegram_notify_whatsapp",
   "telegram_notify_email",
   "telegram_agents_section",
-  "telegram_agents"
+  "telegram_agents",
+  "browser_alerts_section",
+  "browser_alerts_enabled",
+  "browser_alert_poll_seconds",
+  "browser_alerts_column",
+  "browser_alert_whatsapp",
+  "browser_alert_email"
  ],
  "fields": [
   {
@@ -120,6 +126,47 @@
    "fieldtype": "Table",
    "label": "Agentes",
    "options": "CORTEC Telegram Agent"
+  },
+  {
+   "collapsible": 1,
+   "description": "Reproduce un sonido (y opcionalmente una notificación del navegador) mientras el agente tiene /crm o /helpdesk abierto, aunque la pestaña esté en segundo plano. Cada agente debe pulsar una vez el botón 🔕 de la página para activar el sonido. Es independiente de los avisos por Telegram.",
+   "fieldname": "browser_alerts_section",
+   "fieldtype": "Section Break",
+   "label": "Alertas en el navegador"
+  },
+  {
+   "default": "0",
+   "fieldname": "browser_alerts_enabled",
+   "fieldtype": "Check",
+   "label": "Habilitar alertas en el navegador"
+  },
+  {
+   "default": "10",
+   "depends_on": "browser_alerts_enabled",
+   "description": "Cada cuántos segundos el navegador consulta si hay mensajes nuevos (mínimo 5).",
+   "fieldname": "browser_alert_poll_seconds",
+   "fieldtype": "Int",
+   "label": "Intervalo de consulta (segundos)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "browser_alerts_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "depends_on": "browser_alerts_enabled",
+   "fieldname": "browser_alert_whatsapp",
+   "fieldtype": "Check",
+   "label": "Sonar con WhatsApp entrantes"
+  },
+  {
+   "default": "1",
+   "depends_on": "browser_alerts_enabled",
+   "description": "Correos recibidos en CRM Lead, CRM Deal y HD Ticket asignados al agente.",
+   "fieldname": "browser_alert_email",
+   "fieldtype": "Check",
+   "label": "Sonar con correos entrantes"
   }
  ],
  "issingle": 1,

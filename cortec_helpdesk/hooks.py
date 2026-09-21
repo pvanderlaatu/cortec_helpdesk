@@ -10,7 +10,7 @@ app_description = (
     "Customizaciones de Frappe Helpdesk para CORTEC: "
     "control de visibilidad por agente, asignación automática "
     "de tickets por cliente, email routing por doctype y avisos "
-    "por Telegram de WhatsApp y correos entrantes."
+    "(Telegram y sonido en el navegador) de WhatsApp y correos entrantes."
 )
 app_email = "soporte@tecnocr.net"
 app_license = "AGPL-3.0"
@@ -69,6 +69,14 @@ permission_query_conditions = {
 has_permission = {
     "HD Ticket": "cortec_helpdesk.overrides.hd_ticket.has_permission",
 }
+
+# ---------------------------------------------------------------------------
+# Renderers de página — inserta el script de alertas audibles en /crm y
+# /helpdesk sin modificar esas apps (ver overrides/browser_alerts.py)
+# ---------------------------------------------------------------------------
+page_renderer = [
+    "cortec_helpdesk.overrides.browser_alerts.AlertsTemplatePage",
+]
 
 # ---------------------------------------------------------------------------
 # Document Events

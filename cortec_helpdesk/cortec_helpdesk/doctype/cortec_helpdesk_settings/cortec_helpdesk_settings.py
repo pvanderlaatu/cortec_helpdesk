@@ -7,6 +7,7 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import cint
 
 FIELD_BY_CATEGORY = {
     "helpdesk": "helpdesk_email_account",
@@ -19,12 +20,23 @@ FIELD_BY_CATEGORY = {
 # omisión en un sitio recién migrado.
 DEFAULT_PROMOTIONS_EMAIL_GROUP = "Promociones CORTEC"
 
+MIN_BROWSER_POLL_SECONDS = 5
+
 
 class CORTECHelpdeskSettings(Document):
     def validate(self):
         self._validate_outgoing_enabled("helpdesk_email_account")
         self._validate_outgoing_enabled("crm_email_account")
         self._validate_telegram()
+        self._validate_browser_alerts()
+
+    def _validate_browser_alerts(self) -> None:
+        if self.browser_alerts_enabled and cint(self.browser_alert_poll_seconds) < MIN_BROWSER_POLL_SECONDS:
+            frappe.throw(
+                _("El intervalo de consulta de las alertas en el navegador debe ser de al menos {0} segundos.").format(
+                    MIN_BROWSER_POLL_SECONDS
+                )
+            )
 
     def _validate_telegram(self) -> None:
         if self.telegram_enabled and not self.telegram_bot_token:
@@ -111,5 +123,16 @@ def get_telegram_settings():
     """
     settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
     if not settings.get("telegram_enabled"):
+        return None
+    return settings
+
+
+def get_browser_alert_settings():
+    """
+    Devuelve CORTEC Helpdesk Settings (cacheado) si las alertas en el
+    navegador están habilitadas, o None si no lo están.
+    """
+    settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
+    if not settings.get("browser_alerts_enabled"):
         return None
     return settings

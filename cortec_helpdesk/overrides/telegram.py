@@ -40,15 +40,21 @@ Privacidad: el aviso lleva solo el documento, el nombre del cliente y
 el enlace; nunca el texto del mensaje ni el asunto del correo.
 """
 
-from urllib.parse import quote
-
 import frappe
 import requests
 from frappe import _
-from frappe.utils import cint, escape_html, get_url, parse_addr
+from frappe.utils import cint, escape_html, parse_addr
 
 from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_helpdesk_settings import (
     get_telegram_settings,
+)
+from cortec_helpdesk.overrides.alert_utils import (
+    REFERENCE_DOCTYPES,
+    build_link,
+    build_reference_label,
+    get_assignees,
+    get_display_name,
+    is_internal_sender,
 )
 
 
@@ -56,20 +62,6 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/{method}"
 REQUEST_TIMEOUT = 10
 
 MANAGER_ROLES = ("System Manager", "HD Manager")
-
-# Doctypes cuyos correos entrantes generan aviso: etiqueta y ruta en la UI.
-REFERENCE_DOCTYPES = {
-    "CRM Lead": {"label": "Lead", "route": "/crm/leads/{name}"},
-    "CRM Deal": {"label": "Deal", "route": "/crm/deals/{name}"},
-    "HD Ticket": {"label": "Ticket #", "route": "/helpdesk/tickets/{name}"},
-}
-
-# Campos que se prueban, en orden, para mostrar el nombre del cliente.
-DISPLAY_NAME_FIELDS = {
-    "CRM Lead": ("lead_name", "organization", "first_name"),
-    "CRM Deal": ("organization", "lead_name"),
-    "HD Ticket": ("customer", "contact", "raised_by"),
-}
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +146,7 @@ def send_whatsapp_alert(message_name: str) -> None:
         # Sin Lead/Deal no hay agente asignado a quien avisar.
         return
 
-    customer = message.get("profile_name") or _get_display_name(
+    customer = message.get("profile_name") or get_display_name(
         message.reference_doctype, message.reference_name
     ) or message.get("from")
 
@@ -182,11 +174,11 @@ def send_email_alert(communication_name: str) -> None:
     if not comm or comm.reference_doctype not in REFERENCE_DOCTYPES:
         return
 
-    if _is_internal_sender(comm.sender):
+    if is_internal_sender(comm.sender):
         # Respuesta o copia de un propio agente: no es un cliente.
         return
 
-    customer = _get_display_name(
+    customer = get_display_name(
         comm.reference_doctype, comm.reference_name
     ) or comm.sender_full_name or parse_addr(comm.sender or "")[1]
 
@@ -279,7 +271,7 @@ def _notify_assignees(
     Envía el aviso a cada agente asignado al documento que tenga una fila
     en la tabla con ``flag`` activo, respetando el agrupamiento.
     """
-    assignees = _get_assignees(reference_doctype, reference_name)
+    assignees = get_assignees(reference_doctype, reference_name)
     if not assignees:
         return
 
@@ -294,13 +286,10 @@ def _notify_assignees(
     if not token:
         return
 
-    info = REFERENCE_DOCTYPES[reference_doctype]
-    link = get_url(info["route"].format(name=quote(str(reference_name))))
-    label = info["label"]
-    separator = "" if label.endswith("#") else " "
+    link = build_link(reference_doctype, reference_name)
     lines = [
         title,
-        f"{escape_html(label)}{separator}{escape_html(str(reference_name))}"
+        escape_html(build_reference_label(reference_doctype, reference_name))
         + (f" — {escape_html(customer)}" if customer else ""),
         f'<a href="{escape_html(link)}">Abrir</a>',
     ]
@@ -323,41 +312,6 @@ def _notify_assignees(
                     f"{reference_doctype} {reference_name}\nError: {error}"
                 ),
             )
-
-
-def _get_assignees(doctype: str, name: str) -> list[str]:
-    """Usuarios asignados al documento (campo _assign)."""
-    assign = frappe.db.get_value(doctype, name, "_assign")
-    if not assign:
-        return []
-    try:
-        return frappe.parse_json(assign) or []
-    except Exception:
-        return []
-
-
-def _get_display_name(doctype: str, name: str) -> str | None:
-    """Primer campo con valor de DISPLAY_NAME_FIELDS para el documento."""
-    meta = frappe.get_meta(doctype)
-    fields = [f for f in DISPLAY_NAME_FIELDS.get(doctype, ()) if meta.has_field(f)]
-    if not fields:
-        return None
-
-    values = frappe.db.get_value(doctype, name, fields, as_dict=True) or {}
-    for field in fields:
-        if values.get(field):
-            return str(values[field])
-    return None
-
-
-def _is_internal_sender(sender: str | None) -> bool:
-    """True si el remitente es un usuario activo del sistema (un agente)."""
-    email = parse_addr(sender or "")[1]
-    if not email:
-        return False
-    return bool(
-        frappe.db.exists("User", {"email": email, "enabled": 1, "user_type": "System User"})
-    )
 
 
 def _acquire_throttle(user: str, doctype: str, name: str, seconds: int) -> bool:

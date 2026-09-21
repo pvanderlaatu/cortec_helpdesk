@@ -17,6 +17,9 @@ AGPL-3.0-or-later — Ver archivo [LICENSE](LICENSE).
    cuenta de correo correcta según el módulo de origen.
 4. **Avisos por Telegram** — avisa con sonido en el móvil del agente
    asignado cuando entra un WhatsApp o un correo de un cliente (opcional).
+5. **Alertas en el navegador** — sonido y notificación del navegador en
+   /crm y /helpdesk con los mismos eventos (opcional, independiente de
+   Telegram).
 
 ## Estructura
 
@@ -33,7 +36,9 @@ cortec_helpdesk/
         ├── __init__.py
         ├── hd_ticket.py         # Permisos y asignación automática
         ├── communication.py     # Email routing por doctype
-        └── telegram.py          # Avisos por Telegram (WhatsApp y correo)
+        ├── alert_utils.py       # Helpers comunes de avisos
+        ├── telegram.py          # Avisos por Telegram (WhatsApp y correo)
+        └── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
 ```
 
 ## Instalación
@@ -142,6 +147,38 @@ enlaces del aviso apunten al dominio correcto, y los workers de la cola
   app en recientes (ver <https://dontkillmyapp.com>).
 - Si el agente tiene Telegram abierto en el ordenador, Telegram puede no
   avisar en el móvil mientras tanto.
+
+### 7. Alertas en el navegador (opcional)
+
+Mientras el agente tiene **/crm** o **/helpdesk** abierto (aunque la
+pestaña esté en segundo plano), suena un tono cuando entra un WhatsApp o un
+correo de un cliente en un documento asignado a él. Opcionalmente muestra
+también una notificación del navegador; al hacer clic se abre el documento.
+Tono distinto para WhatsApp y para correo.
+
+Funciona con los mismos eventos que Telegram, y ambos canales son
+independientes: se pueden usar juntos (navegador en el escritorio,
+Telegram en el móvil).
+
+**Configuración**
+
+1. `CORTEC Helpdesk Settings` → **Alertas en el navegador** → ✅ Habilitar.
+   Elegir WhatsApp y/o correos y el intervalo de consulta (10 s por
+   defecto, mínimo 5). Guardar.
+2. `bench build --app cortec_helpdesk` (publica el script en `/assets`).
+3. Cada agente recarga /crm o /helpdesk y pulsa una vez el botón **🔕**
+   (esquina inferior derecha) → pasa a 🔔 y el navegador pide permiso de
+   notificaciones. El mismo botón silencia o reactiva el sonido.
+
+**Limitaciones**
+
+- Los navegadores exigen una interacción antes de reproducir sonido: tras
+  recargar la página basta un clic en cualquier parte.
+- Si la pestaña lleva más de 5 minutos oculta, Chrome limita las consultas a
+  una por minuto: el aviso puede tardar hasta 1 minuto.
+- Con /crm y /helpdesk abiertos a la vez suena una sola vez.
+- En el móvil solo suena con la página en pantalla; para el móvil usar
+  Telegram.
 
 ## Flujo de un ticket
 
