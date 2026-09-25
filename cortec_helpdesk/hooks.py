@@ -87,17 +87,17 @@ doc_events = {
     },
     "Communication": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_by_doctype",
-        "after_insert": "cortec_helpdesk.overrides.telegram.on_communication",
+        "after_insert": "cortec_helpdesk.overrides.alerts.on_communication",
     },
     "Email Queue": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_queue_by_doctype",
     },
     "WhatsApp Message": {
-        # El orden importa: el aviso por Telegram debe ver el Lead que
+        # El orden importa: los avisos deben ver el Lead que
         # route_unclaimed_message crea para mensajes sin vínculo abierto.
         "after_insert": [
             "cortec_helpdesk.overrides.whatsapp.route_unclaimed_message",
-            "cortec_helpdesk.overrides.telegram.on_whatsapp_message",
+            "cortec_helpdesk.overrides.alerts.on_whatsapp_message",
         ],
     },
     "CRM Lead": {

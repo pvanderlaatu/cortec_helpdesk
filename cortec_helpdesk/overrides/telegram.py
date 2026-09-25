@@ -20,41 +20,31 @@ from __future__ import annotations
 """
 cortec_helpdesk.overrides.telegram
 ===================================
-Avisos por Telegram al agente asignado cuando entra un WhatsApp o un
-correo de un cliente. Frappe CRM/Helpdesk solo avisan en pantalla; un
-mensaje de Telegram suena en el móvil aunque esté bloqueado.
+Canal de avisos por Telegram: un mensaje del bot al móvil del agente
+asignado, que suena aunque el teléfono esté bloqueado.
 
-on_whatsapp_message — after_insert de WhatsApp Message (Incoming).
-on_communication    — after_insert de Communication (correo recibido en
-                      CRM Lead, CRM Deal o HD Ticket).
+El despachador (overrides/alerts.py) llama a:
+  is_enabled_for(kind) — ¿está habilitado este canal para "whatsapp"
+                         o para "email"?
+  notify(event, assignees) — envía el aviso a los agentes vinculados.
 
-Ambos hooks solo encolan el envío (después del commit) para no retrasar
-el webhook de WhatsApp ni la lectura IMAP. El trabajo en cola relee los
-documentos, así ya ve el Lead creado por route_unclaimed_message y la
-asignación hecha por auto_assign_ticket o por una Assignment Rule.
-
-Todo es opcional: interruptor general y por tipo en CORTEC Helpdesk
-Settings, y por agente en la tabla "Agentes vinculados".
-
-Privacidad: el aviso lleva solo el documento, el nombre del cliente y
-el enlace; nunca el texto del mensaje ni el asunto del correo.
+Privacidad: el aviso pasa por los servidores de Telegram, así que lleva
+solo el documento, el nombre del cliente y el enlace; nunca el texto del
+mensaje ni el asunto del correo.
 """
 
 import frappe
 import requests
 from frappe import _
-from frappe.utils import cint, escape_html, parse_addr
+from frappe.utils import cint, escape_html
 
 from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_helpdesk_settings import (
     get_telegram_settings,
 )
 from cortec_helpdesk.overrides.alert_utils import (
-    REFERENCE_DOCTYPES,
+    acquire_throttle,
     build_link,
     build_reference_label,
-    get_assignees,
-    get_display_name,
-    is_internal_sender,
 )
 
 
@@ -65,133 +55,79 @@ REQUEST_TIMEOUT = 10
 # es el rol de supervisor de Frappe Helpdesk.
 MANAGER_ROLES = ("System Manager", "Agent Manager", "HD Manager")
 
-
-# ---------------------------------------------------------------------------
-# Hooks
-# ---------------------------------------------------------------------------
-
-def on_whatsapp_message(doc, method: str = None) -> None:
-    """
-    Hook ``after_insert`` en WhatsApp Message. Debe ir DESPUÉS de
-    route_unclaimed_message en hooks.py.
-
-    Defensivo: un error aquí nunca debe interrumpir la recepción del
-    mensaje (corre en el flujo del webhook entrante).
-    """
-    try:
-        if doc.type != "Incoming":
-            return
-
-        settings = get_telegram_settings()
-        if not settings or not settings.telegram_notify_whatsapp:
-            return
-
-        frappe.enqueue(
-            "cortec_helpdesk.overrides.telegram.send_whatsapp_alert",
-            queue="short",
-            message_name=doc.name,
-            enqueue_after_commit=True,
-        )
-    except Exception as e:
-        frappe.log_error(
-            title="CORTEC Telegram: error encolando aviso de WhatsApp",
-            message=f"WhatsApp Message {doc.name}\nError: {str(e)}",
-        )
-
-
-def on_communication(doc, method: str = None) -> None:
-    """
-    Hook ``after_insert`` en Communication. Solo correos recibidos que
-    referencian un doctype de REFERENCE_DOCTYPES.
-    """
-    try:
-        if doc.communication_medium != "Email":
-            return
-        if doc.sent_or_received != "Received":
-            return
-        if doc.get("reference_doctype") not in REFERENCE_DOCTYPES:
-            return
-
-        settings = get_telegram_settings()
-        if not settings or not settings.telegram_notify_email:
-            return
-
-        frappe.enqueue(
-            "cortec_helpdesk.overrides.telegram.send_email_alert",
-            queue="short",
-            communication_name=doc.name,
-            enqueue_after_commit=True,
-        )
-    except Exception as e:
-        frappe.log_error(
-            title="CORTEC Telegram: error encolando aviso de correo",
-            message=f"Communication {doc.name}\nError: {str(e)}",
-        )
+# Por tipo de evento: interruptor global, campo por agente y título.
+KIND_CONFIG = {
+    "whatsapp": {
+        "setting": "telegram_notify_whatsapp",
+        "row_flag": "notify_whatsapp",
+        "title": "📱 <b>Nuevo WhatsApp</b>",
+    },
+    "email": {
+        "setting": "telegram_notify_email",
+        "row_flag": "notify_email",
+        "title": "✉️ <b>Nuevo correo</b>",
+    },
+}
 
 
 # ---------------------------------------------------------------------------
-# Trabajos en cola
+# Interfaz del canal
 # ---------------------------------------------------------------------------
 
-def send_whatsapp_alert(message_name: str) -> None:
-    """Envía el aviso de un WhatsApp Message entrante a sus agentes."""
+def is_enabled_for(kind: str) -> bool:
     settings = get_telegram_settings()
-    if not settings or not settings.telegram_notify_whatsapp:
+    config = KIND_CONFIG.get(kind)
+    return bool(settings and config and settings.get(config["setting"]))
+
+
+def notify(event: dict, assignees: list[str]) -> None:
+    """
+    Envía el aviso a cada agente asignado que tenga una fila en la tabla
+    con el tipo de evento activo, respetando el agrupamiento de ráfagas.
+    """
+    settings = get_telegram_settings()
+    config = KIND_CONFIG.get(event["kind"])
+    if not settings or not config:
         return
 
-    meta = frappe.get_meta("WhatsApp Message")
-    fields = ["reference_doctype", "reference_name"] + [
-        f for f in ("profile_name", "from") if meta.has_field(f)
+    rows = [
+        row for row in settings.telegram_agents
+        if row.user in assignees and row.get(config["row_flag"])
     ]
-    message = frappe.db.get_value("WhatsApp Message", message_name, fields, as_dict=True)
-    if not message or message.reference_doctype not in ("CRM Lead", "CRM Deal"):
-        # Sin Lead/Deal no hay agente asignado a quien avisar.
+    if not rows:
         return
 
-    customer = message.get("profile_name") or get_display_name(
-        message.reference_doctype, message.reference_name
-    ) or message.get("from")
-
-    _notify_assignees(
-        settings,
-        flag="notify_whatsapp",
-        title="📱 <b>Nuevo WhatsApp</b>",
-        reference_doctype=message.reference_doctype,
-        reference_name=message.reference_name,
-        customer=customer,
-    )
-
-
-def send_email_alert(communication_name: str) -> None:
-    """Envía el aviso de un correo recibido a los agentes asignados."""
-    settings = get_telegram_settings()
-    if not settings or not settings.telegram_notify_email:
+    token = settings.get_password("telegram_bot_token", raise_exception=False)
+    if not token:
         return
 
-    comm = frappe.db.get_value(
-        "Communication", communication_name,
-        ["reference_doctype", "reference_name", "sender", "sender_full_name"],
-        as_dict=True,
-    )
-    if not comm or comm.reference_doctype not in REFERENCE_DOCTYPES:
-        return
+    link = build_link(event["doctype"], event["name"])
+    customer = event.get("customer")
+    lines = [
+        config["title"],
+        escape_html(build_reference_label(event["doctype"], event["name"]))
+        + (f" — {escape_html(customer)}" if customer else ""),
+        f'<a href="{escape_html(link)}">Abrir</a>',
+    ]
+    text = "\n".join(lines)
 
-    if is_internal_sender(comm.sender):
-        # Respuesta o copia de un propio agente: no es un cliente.
-        return
+    throttle_seconds = cint(settings.telegram_throttle_minutes) * 60
 
-    customer = get_display_name(
-        comm.reference_doctype, comm.reference_name
-    ) or comm.sender_full_name or parse_addr(comm.sender or "")[1]
+    for row in rows:
+        if throttle_seconds and not acquire_throttle(
+            "telegram", row.user, event["doctype"], event["name"], throttle_seconds
+        ):
+            continue
 
-    _notify_assignees(
-        settings,
-        flag="notify_email",
-        title="✉️ <b>Nuevo correo</b>",
-        reference_doctype=comm.reference_doctype,
-        reference_name=comm.reference_name,
-        customer=customer,
-    )
+        ok, error = _telegram_send(token, row.chat_id, text)
+        if not ok:
+            frappe.log_error(
+                title="CORTEC Telegram: error enviando aviso",
+                message=(
+                    f"Agente {row.user} (chat {row.chat_id}), "
+                    f"{event['doctype']} {event['name']}\nError: {error}"
+                ),
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -260,71 +196,6 @@ def send_telegram_test() -> list[dict]:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _notify_assignees(
-    settings,
-    flag: str,
-    title: str,
-    reference_doctype: str,
-    reference_name: str,
-    customer: str | None,
-) -> None:
-    """
-    Envía el aviso a cada agente asignado al documento que tenga una fila
-    en la tabla con ``flag`` activo, respetando el agrupamiento.
-    """
-    assignees = get_assignees(reference_doctype, reference_name)
-    if not assignees:
-        return
-
-    rows = [
-        row for row in settings.telegram_agents
-        if row.user in assignees and row.get(flag)
-    ]
-    if not rows:
-        return
-
-    token = settings.get_password("telegram_bot_token", raise_exception=False)
-    if not token:
-        return
-
-    link = build_link(reference_doctype, reference_name)
-    lines = [
-        title,
-        escape_html(build_reference_label(reference_doctype, reference_name))
-        + (f" — {escape_html(customer)}" if customer else ""),
-        f'<a href="{escape_html(link)}">Abrir</a>',
-    ]
-    text = "\n".join(lines)
-
-    throttle_seconds = cint(settings.telegram_throttle_minutes) * 60
-
-    for row in rows:
-        if throttle_seconds and not _acquire_throttle(
-            row.user, reference_doctype, reference_name, throttle_seconds
-        ):
-            continue
-
-        ok, error = _telegram_send(token, row.chat_id, text)
-        if not ok:
-            frappe.log_error(
-                title="CORTEC Telegram: error enviando aviso",
-                message=(
-                    f"Agente {row.user} (chat {row.chat_id}), "
-                    f"{reference_doctype} {reference_name}\nError: {error}"
-                ),
-            )
-
-
-def _acquire_throttle(user: str, doctype: str, name: str, seconds: int) -> bool:
-    """
-    True si se debe avisar ahora. Usa SET NX con expiración para que dos
-    trabajos simultáneos no envíen el mismo aviso.
-    """
-    cache = frappe.cache()
-    key = cache.make_key(f"cortec_tg:{user}:{doctype}:{name}")
-    return bool(cache.set(key, 1, ex=seconds, nx=True))
-
 
 def _get_token_or_throw() -> str:
     settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")

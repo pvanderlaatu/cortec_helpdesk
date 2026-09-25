@@ -18,8 +18,9 @@ AGPL-3.0-or-later — Ver archivo [LICENSE](LICENSE).
 4. **Avisos por Telegram** — avisa con sonido en el móvil del agente
    asignado cuando entra un WhatsApp o un correo de un cliente (opcional).
 5. **Alertas en el navegador** — sonido y notificación del navegador en
-   /crm y /helpdesk con los mismos eventos (opcional, independiente de
-   Telegram).
+   /crm y /helpdesk con los mismos eventos (opcional).
+6. **Avisos por Raven** — mensaje directo de un bot de Raven, sin salir
+   del servidor (opcional).
 
 ## Estructura
 
@@ -37,7 +38,9 @@ cortec_helpdesk/
         ├── hd_ticket.py         # Permisos y asignación automática
         ├── communication.py     # Email routing por doctype
         ├── alert_utils.py       # Helpers comunes de avisos
-        ├── telegram.py          # Avisos por Telegram (WhatsApp y correo)
+        ├── alerts.py            # Despachador: resuelve el evento y reparte
+        ├── telegram.py          # Canal Telegram
+        ├── raven.py             # Canal Raven
         └── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
 ```
 
@@ -195,6 +198,42 @@ Telegram en el móvil).
 - Con /crm y /helpdesk abiertos a la vez suena una sola vez.
 - En el móvil solo suena con la página en pantalla; para el móvil usar
   Telegram.
+
+### 8. Avisos por Raven (opcional)
+
+Mensaje directo de un bot de Raven al agente asignado, con los mismos
+eventos que Telegram. **Raven corre en este mismo servidor**, así que el
+aviso no sale hacia ningún servicio externo: por eso es el único canal
+donde se puede incluir el contenido del mensaje.
+
+Ventaja sobre Telegram: el destinatario es el propio usuario de Frappe,
+así que no hay que vincular ningún Chat ID.
+
+**Configuración**
+
+1. Instalar la app Raven en el bench y agregar a los agentes (necesitan
+   un **Raven User** habilitado).
+2. En Raven, crear un bot, por ejemplo "Alertas CORTEC".
+3. `CORTEC Helpdesk Settings` → **Avisos por Raven** → ✅ Habilitar,
+   elegir el bot y guardar. Opcionalmente, activar *Incluir el contenido
+   del mensaje*.
+4. **Raven → Enviar prueba** para confirmar que llega el mensaje directo.
+
+**Limitación en el móvil:** para que suene con la pantalla bloqueada
+hacen falta las notificaciones push de Frappe (*Push Notification
+Settings*), que en sitios autoalojados dependen de un relay. Si no están
+disponibles, Raven sirve para el escritorio y **Telegram sigue siendo el
+canal del móvil**.
+
+### Comparación de los tres canales
+
+| | Raven | Telegram | Navegador |
+| --- | --- | --- | --- |
+| Sale del servidor | No | Sí | No |
+| Puede incluir el mensaje | Sí, opcional | No | No |
+| Vinculación por agente | Ninguna | Chat ID | Ninguna |
+| Escritorio | Sí | Con Telegram Desktop | Sí, con /crm o /helpdesk abierto |
+| Móvil con pantalla bloqueada | Solo con push (relay) | Sí | No |
 
 ## Flujo de un ticket
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 const TELEGRAM_API = "cortec_helpdesk.overrides.telegram";
+const RAVEN_API = "cortec_helpdesk.overrides.raven";
 
 frappe.ui.form.on("CORTEC Helpdesk Settings", {
 	refresh(frm) {
@@ -11,6 +12,15 @@ frappe.ui.form.on("CORTEC Helpdesk Settings", {
 
 		frm.set_query("helpdesk_email_account", only_outgoing_accounts);
 		frm.set_query("crm_email_account", only_outgoing_accounts);
+
+		if (frm.doc.raven_enabled) {
+			load_raven_bots(frm);
+			frm.add_custom_button(
+				__("Enviar prueba"),
+				() => send_raven_test(frm),
+				__("Raven")
+			);
+		}
 
 		if (frm.doc.telegram_enabled) {
 			frm.add_custom_button(
@@ -128,4 +138,43 @@ function send_telegram_test(frm) {
 			});
 		},
 	});
+}
+
+function send_raven_test(frm) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Guarde los cambios antes de enviar la prueba."));
+		return;
+	}
+
+	frappe.call({
+		method: `${RAVEN_API}.send_raven_test`,
+		freeze: true,
+		callback: (r) => {
+			if (r.message && r.message.ok) {
+				frappe.msgprint(
+					__("Mensaje de prueba enviado a {0} en Raven.", [r.message.user])
+				);
+			}
+		},
+	});
+}
+
+// Llena el autocompletado del bot. Si Raven no está instalado, el campo
+// queda vacío y la validación del servidor lo explica al guardar.
+function load_raven_bots(frm) {
+	frappe.db
+		.get_list("Raven Bot", { fields: ["name", "bot_name"], limit: 100 })
+		.then((bots) => {
+			frm.set_df_property(
+				"raven_bot",
+				"options",
+				(bots || []).map((bot) => ({
+					value: bot.name,
+					label: bot.bot_name || bot.name,
+				}))
+			);
+		})
+		.catch(() => {
+			/* Raven no instalado o sin permisos: se deja el campo libre */
+		});
 }

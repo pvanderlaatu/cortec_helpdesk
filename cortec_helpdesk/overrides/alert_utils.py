@@ -91,6 +91,17 @@ def build_link(doctype: str, name: str, absolute: bool = True) -> str:
     return get_url(route) if absolute else route
 
 
+def acquire_throttle(channel: str, user: str, doctype: str, name: str, seconds: int) -> bool:
+    """
+    True si se debe avisar ahora por ese canal. Usa SET NX con expiración
+    para que dos trabajos simultáneos no envíen el mismo aviso, y una
+    clave por canal para que Telegram y Raven se agrupen por separado.
+    """
+    cache = frappe.cache()
+    key = cache.make_key(f"cortec_alert:{channel}:{user}:{doctype}:{name}")
+    return bool(cache.set(key, 1, ex=seconds, nx=True))
+
+
 def build_reference_label(doctype: str, name: str) -> str:
     """Texto plano tipo 'Lead CRM-LEAD-0001' o 'Ticket #123'."""
     label = REFERENCE_DOCTYPES[doctype]["label"]

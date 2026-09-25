@@ -28,7 +28,20 @@ class CORTECHelpdeskSettings(Document):
         self._validate_outgoing_enabled("helpdesk_email_account")
         self._validate_outgoing_enabled("crm_email_account")
         self._validate_telegram()
+        self._validate_raven()
         self._validate_browser_alerts()
+
+    def _validate_raven(self) -> None:
+        if not self.raven_enabled:
+            return
+        if not is_raven_installed():
+            frappe.throw(
+                _("La app Raven no está instalada en este sitio: no se pueden habilitar sus avisos.")
+            )
+        if not self.raven_bot:
+            frappe.throw(_("Elija el bot de Raven que enviará los avisos."))
+        if not frappe.db.exists("Raven Bot", self.raven_bot):
+            frappe.throw(_("No existe el bot de Raven {0}.").format(self.raven_bot))
 
     def _validate_browser_alerts(self) -> None:
         if self.browser_alerts_enabled and cint(self.browser_alert_poll_seconds) < MIN_BROWSER_POLL_SECONDS:
@@ -123,6 +136,24 @@ def get_telegram_settings():
     """
     settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
     if not settings.get("telegram_enabled"):
+        return None
+    return settings
+
+
+def is_raven_installed() -> bool:
+    """True si la app raven está instalada en este sitio."""
+    return "raven" in frappe.get_installed_apps()
+
+
+def get_raven_settings():
+    """
+    Devuelve CORTEC Helpdesk Settings (cacheado) si los avisos por Raven
+    están habilitados y la app está instalada, o None si no.
+    """
+    if not is_raven_installed():
+        return None
+    settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
+    if not settings.get("raven_enabled"):
         return None
     return settings
 
