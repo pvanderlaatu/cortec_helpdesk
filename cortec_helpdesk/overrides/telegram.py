@@ -61,7 +61,9 @@ from cortec_helpdesk.overrides.alert_utils import (
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/{method}"
 REQUEST_TIMEOUT = 10
 
-MANAGER_ROLES = ("System Manager", "HD Manager")
+# Quién puede usar los botones de Telegram en Settings. "Agent Manager"
+# es el rol de supervisor de Frappe Helpdesk.
+MANAGER_ROLES = ("System Manager", "Agent Manager", "HD Manager")
 
 
 # ---------------------------------------------------------------------------

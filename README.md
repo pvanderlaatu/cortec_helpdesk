@@ -74,12 +74,28 @@ Configuración en **correo1@** (pestaña Entrante):
 
 ### 2. Roles
 
-| Rol            | Propósito           | Visibilidad            |
-| -------------- | ------------------- | ---------------------- |
-| System Manager | Administrador       | Todos los tickets      |
-| HD Manager     | Supervisor helpdesk | Todos los tickets      |
-| HD Agent Lead  | Persona asignadora  | Todos los tickets      |
-| HD Agent       | Agente de soporte   | Solo tickets asignados |
+Frappe Helpdesk usa los roles **Agent** (agente) y **Agent Manager**
+(asigna y administra). Son los que reconoce `helpdesk.utils.is_agent` /
+`is_agent_manager`: sin uno de ellos, el usuario entra al portal de
+clientes, no a la interfaz de agentes.
+
+| Rol            | Propósito                     | Visibilidad            |
+| -------------- | ----------------------------- | ---------------------- |
+| System Manager | Administrador                 | Todos los tickets      |
+| Agent Manager  | Supervisor / persona asignadora | Todos los tickets    |
+| HD Manager     | Supervisor helpdesk           | Todos los tickets      |
+| Agent          | Agente de soporte             | Solo tickets asignados |
+
+Los nombres antiguos **HD Agent** y **HD Agent Lead** se siguen
+reconociendo, por si un sitio los creó a mano, pero no son roles
+estándar de Helpdesk.
+
+Los avisos de asignación y de tickets sin asignar se envían a los
+usuarios con rol **Agent Manager** o **HD Agent Lead**.
+
+Al agente hay que crearlo además desde la administración de Helpdesk
+(crea el registro **HD Agent** y asigna el rol "Agent"). Si también
+atiende WhatsApp en /crm, necesita el rol **Sales User**.
 
 ### 3. Account Manager en cada Cliente
 
@@ -190,7 +206,7 @@ Telegram en el móvil).
 5. Agente y supervisor reciben notificación desde correo1@
 6. Helpdesk envía acuse de recibo al cliente desde correo1@
 7. Agente responde desde UI → cliente recibe desde correo1@
-8. Si no se resuelve agente → HD Agent Lead recibe alerta
+8. Si no se resuelve agente → los supervisores (Agent Manager) reciben alerta
 ```
 
 ## Email routing

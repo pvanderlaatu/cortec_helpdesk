@@ -35,8 +35,9 @@ Roles reconocidos
 -----------------
   System Manager   → acceso total (rol estándar de Frappe)
   HD Manager       → acceso total (supervisor de helpdesk)
-  HD Agent Lead    → acceso total (persona asignadora)
-  HD Agent         → solo ve / accede a sus propios tickets asignados
+  Agent Manager    → acceso total (asigna y administra, rol de Helpdesk)
+  HD Agent Lead    → acceso total (nombre antiguo, se mantiene)
+  Agent / HD Agent → solo ve / accede a sus propios tickets asignados
 """
 
 import frappe
@@ -51,8 +52,20 @@ from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_hel
 # Constantes
 # ---------------------------------------------------------------------------
 
-FULL_ACCESS_ROLES = {"System Manager", "HD Manager", "HD Agent Lead"}
-AGENT_ROLE = "HD Agent"
+# Nombres reales de los roles de Frappe Helpdesk: "Agent" para el agente
+# y "Agent Manager" para quien asigna y administra (ver helpdesk.utils
+# is_agent / is_agent_manager). Se mantienen los nombres antiguos por si
+# un sitio los creó a mano siguiendo versiones previas de esta app.
+FULL_ACCESS_ROLES = {
+    "System Manager",
+    "Agent Manager",
+    "HD Manager",
+    "HD Agent Lead",
+}
+AGENT_ROLES = {"Agent", "HD Agent"}
+
+# Roles que reciben los avisos de asignación y de tickets sin asignar.
+SUPERVISOR_ROLES = ("Agent Manager", "HD Agent Lead")
 
 
 def _get_helpdesk_sender() -> str | None:
@@ -74,7 +87,17 @@ def _user_has_full_access(user: str) -> bool:
 
 def _is_agent(user: str) -> bool:
     """Devuelve True si el usuario tiene el rol de agente restringido."""
-    return AGENT_ROLE in frappe.get_roles(user)
+    return bool(set(frappe.get_roles(user)) & AGENT_ROLES)
+
+
+def _get_supervisors() -> list[str]:
+    """Usuarios con alguno de los roles supervisores (sin repetir)."""
+    users = frappe.get_all(
+        "Has Role",
+        filters={"role": ["in", SUPERVISOR_ROLES], "parenttype": "User"},
+        pluck="parent",
+    )
+    return list(dict.fromkeys(users))
 
 
 # ===========================================================================
@@ -148,7 +171,7 @@ def auto_assign_ticket(doc, method: str = None) -> None:
     Flujo:
       email remitente → Contacto → Cliente → account_manager → asignar
 
-    Si no se resuelve el agente, notifica a los HD Agent Lead.
+    Si no se resuelve el agente, notifica a los supervisores.
     """
     agent = _resolve_agent_for_ticket(doc)
 
@@ -245,7 +268,7 @@ def _find_contact_by_email(email: str) -> str | None:
 def _assign_ticket_to_agent(doc, agent: str) -> None:
     """
     Asigna el ticket al agente y envía notificaciones personalizadas
-    tanto al agente como a los supervisores (HD Agent Lead).
+    tanto al agente como a los supervisores.
     """
     try:
         from frappe.desk.form.assign_to import add as assign_to_add
@@ -326,12 +349,8 @@ def _send_agent_notification(doc, agent: str) -> None:
 
 
 def _send_supervisor_notification(doc, agent: str) -> None:
-    """Notifica a los HD Agent Lead sobre la asignación automática."""
-    agent_leads = frappe.get_all(
-        "Has Role",
-        filters={"role": "HD Agent Lead", "parenttype": "User"},
-        pluck="parent",
-    )
+    """Notifica a los supervisores sobre la asignación automática."""
+    agent_leads = _get_supervisors()
 
     if not agent_leads:
         return
@@ -384,14 +403,10 @@ def _send_supervisor_notification(doc, agent: str) -> None:
 def _notify_unassigned_ticket(doc) -> None:
     """
     Cuando no se resuelve el agente automáticamente, notifica a los
-    HD Agent Lead para asignación manual.
+    supervisores para asignación manual.
     """
     try:
-        agent_leads = frappe.get_all(
-            "Has Role",
-            filters={"role": "HD Agent Lead", "parenttype": "User"},
-            pluck="parent",
-        )
+        agent_leads = _get_supervisors()
 
         if not agent_leads:
             return
