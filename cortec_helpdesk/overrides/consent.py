@@ -20,31 +20,45 @@ from __future__ import annotations
 """
 cortec_helpdesk.overrides.consent
 ==================================
-Lógica compartida del consentimiento publicitario (Ley 8968 de Costa
-Rica). El mismo par de campos existe en CRM Lead y en Contact:
+Consentimiento publicitario y de políticas (Ley 8968 de Costa Rica).
 
-  custom_acepta_promociones  — Check: el titular autorizó publicidad.
-  custom_promociones_origen  — Small Text: canal y fecha del
-                                consentimiento (la evidencia).
+La evidencia vive en CORTEC Consent Record (ver consent_log.py). Los
+campos del CRM Lead y del Contact son un reflejo de ese registro:
 
-require_promotions_consent_origin — hook validate para AMBOS doctypes:
-                                     no se puede marcar el Check sin
-                                     documentar su origen.
+  custom_acepta_promociones  — Check: último evento de «promociones».
+  custom_promociones_origen  — Small Text: resumen de ese evento.
+  custom_consentimiento      — Small Text (solo CRM Lead): resumen del
+                                último evento de «politica-privacidad».
 
-has_registered_consent            — consulta usada por el hook de
-                                     Email Group Member antes de permitir
-                                     un alta en la lista promocional.
+sync_consent_fields     — hook validate para AMBOS doctypes: recalcula
+                          los campos desde el registro e impide
+                          marcarlos o desmarcarlos a mano.
+
+has_registered_consent  — consulta usada por el hook de Email Group
+                          Member antes de permitir un alta en la lista
+                          promocional.
 
 Bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el
-responsable de la base de datos, y estos Checks son editables a mano por
-cualquier agente: sin evidencia de origen no prueban nada.
+responsable de la base de datos. Un Check que cualquier agente puede
+marcar no prueba nada; un registro inmutable con fecha, canal y texto
+aceptado, sí.
 """
 
 import frappe
 from frappe import _
+from frappe.utils import cint
+
+from cortec_helpdesk.consent_log import (
+    GRANTED,
+    PROMOTIONS_AGREEMENT,
+    PROMOTIONS_FIELD,
+    current_state,
+    derived_values,
+    document_emails,
+)
 
 
-def require_promotions_consent_origin(doc, method: str = None) -> None:
+def sync_consent_fields(doc, method: str = None) -> None:
     """
     Hook ``validate`` en CRM Lead y en Contact.
 
@@ -52,53 +66,44 @@ def require_promotions_consent_origin(doc, method: str = None) -> None:
     el frappe.throw es el comportamiento deseado, no un error que deba
     registrarse y silenciarse.
     """
-    if not doc.get("custom_acepta_promociones"):
+    if not doc.meta.has_field(PROMOTIONS_FIELD):
         return
 
-    if (doc.get("custom_promociones_origen") or "").strip():
-        return
+    name = None if doc.is_new() else doc.name
+    derived = derived_values(doc.doctype, name, document_emails(doc))
 
-    frappe.throw(
-        _(
-            "Para marcar 'Acepta Correos Promocionales' debe indicar el "
-            "origen del consentimiento (canal y fecha) en el campo "
-            "'Origen del Consentimiento Publicitario'."
+    requested = cint(doc.get(PROMOTIONS_FIELD))
+    registered = cint(derived.get(PROMOTIONS_FIELD))
+    touched = doc.is_new() or doc.has_value_changed(PROMOTIONS_FIELD)
+
+    if touched and requested and not registered:
+        frappe.throw(
+            _(
+                "'Acepta Correos Promocionales' no se marca a mano: use el botón "
+                "'Registrar consentimiento' para dejar constancia del canal, la "
+                "fecha y el texto que aceptó el titular."
+            )
         )
-    )
+
+    if touched and not doc.is_new() and not requested and registered:
+        frappe.throw(
+            _(
+                "Para retirar el consentimiento publicitario registre una "
+                "revocación con el botón 'Registrar consentimiento': el registro "
+                "debe mostrar cuándo y por qué canal se retiró."
+            )
+        )
+
+    doc.update(derived)
 
 
 def has_registered_consent(email: str) -> bool:
     """
-    True si existe un CRM Lead o un Contact con ese correo que tenga el
-    consentimiento publicitario marcado.
+    True si el último evento registrado para ese correo en el acuerdo
+    «promociones» es un consentimiento otorgado.
     """
     email = (email or "").strip()
     if not email:
         return False
 
-    if frappe.db.exists(
-        "CRM Lead", {"email": email, "custom_acepta_promociones": 1}
-    ):
-        return True
-
-    return _contact_has_consent(email)
-
-
-def _contact_has_consent(email: str) -> bool:
-    """
-    Busca por la tabla hija Contact Email (no solo por el email_id
-    primario) para cubrir contactos que consintieron desde un correo
-    secundario.
-    """
-    contacts = frappe.get_all(
-        "Contact Email", filters={"email_id": email}, pluck="parent"
-    )
-    if not contacts:
-        return False
-
-    return bool(
-        frappe.db.exists(
-            "Contact",
-            {"name": ["in", contacts], "custom_acepta_promociones": 1},
-        )
-    )
+    return current_state(email, PROMOTIONS_AGREEMENT) == GRANTED

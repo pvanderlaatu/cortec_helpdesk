@@ -1,0 +1,314 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "SUP-.YYYY.-.####",
+ "creation": "2026-09-29 00:00:00.000000",
+ "description": "Expediente de una solicitud de supresión o revocación de un titular (Ley 8968 y Decreto 37554-JP). No se puede cancelar ni borrar.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "request_section",
+  "request_type",
+  "status",
+  "received_on",
+  "due_date",
+  "request_cb",
+  "notification_medium",
+  "identity_verification",
+  "cessation_confirmation_requested",
+  "cessation_due_date",
+  "info_section",
+  "info_requested_on",
+  "info_received_on",
+  "subject_section",
+  "emails",
+  "phones",
+  "full_names",
+  "subject_cb",
+  "subject_type",
+  "subject_hashes",
+  "resolution_section",
+  "resolution",
+  "legal_basis",
+  "retained_until",
+  "resolution_cb",
+  "content_overrides",
+  "preview_section",
+  "preview_json",
+  "result_section",
+  "executed_on",
+  "executed_by",
+  "response_sent_on",
+  "result_cb",
+  "report_json",
+  "response_section",
+  "response_text"
+ ],
+ "fields": [
+  {
+   "fieldname": "request_section",
+   "fieldtype": "Section Break",
+   "label": "Solicitud"
+  },
+  {
+   "fieldname": "request_type",
+   "fieldtype": "Select",
+   "label": "Tipo",
+   "options": "Supresión\nRevocación",
+   "default": "Supresión",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Supresión: el titular pide eliminar sus datos (Decreto 37554-JP, arts. 25 y 26). Revocación: solo retira sus consentimientos (arts. 7 y 8); no se anonimiza nada."
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Borrador\nEsperando información\nBuscado\nEn proceso\nCompletado\nCon errores\nNo presentada",
+   "default": "Borrador",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "received_on",
+   "fieldtype": "Date",
+   "label": "Fecha de recepción",
+   "reqd": 1,
+   "default": "Today",
+   "description": "Anótela en el acuse de recibo que se entrega al titular (Decreto 37554-JP, art. 18)."
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Fecha límite de respuesta",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "5 días hábiles desde el día siguiente a la recepción, o a la entrega de la información adicional (Decreto 37554-JP, arts. 18 y 19)."
+  },
+  {
+   "fieldname": "request_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notification_medium",
+   "fieldtype": "Data",
+   "label": "Medio para notificaciones",
+   "reqd": 1,
+   "allow_on_submit": 1,
+   "description": "Donde el titular recibirá la respuesta (Decreto 37554-JP, art. 17). Se borra al marcar la respuesta como enviada."
+  },
+  {
+   "fieldname": "identity_verification",
+   "fieldtype": "Small Text",
+   "label": "Acreditación de titularidad o representación",
+   "reqd": 1,
+   "description": "Cómo se verificó que quien pide es el titular o su representante (Decreto 37554-JP, art. 15). Describa el documento revisado sin copiar su número completo."
+  },
+  {
+   "fieldname": "cessation_confirmation_requested",
+   "fieldtype": "Check",
+   "label": "Pide confirmación del cese del tratamiento",
+   "default": "0"
+  },
+  {
+   "fieldname": "cessation_due_date",
+   "fieldtype": "Date",
+   "label": "Fecha límite de la confirmación",
+   "read_only": 1,
+   "depends_on": "cessation_confirmation_requested",
+   "description": "3 días hábiles (Decreto 37554-JP, art. 9)."
+  },
+  {
+   "fieldname": "info_section",
+   "fieldtype": "Section Break",
+   "label": "Información adicional (Decreto 37554-JP, art. 19)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "info_requested_on",
+   "fieldtype": "Date",
+   "label": "Información solicitada el",
+   "read_only": 1,
+   "description": "Solo se puede pedir una vez, dentro de los 5 días hábiles siguientes a la recepción. El titular tiene 5 días hábiles para responder; si no, la solicitud se tiene por no presentada."
+  },
+  {
+   "fieldname": "info_received_on",
+   "fieldtype": "Date",
+   "label": "Información recibida el",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subject_section",
+   "fieldtype": "Section Break",
+   "label": "Titular"
+  },
+  {
+   "fieldname": "emails",
+   "fieldtype": "Small Text",
+   "label": "Correos",
+   "description": "Uno por línea."
+  },
+  {
+   "fieldname": "phones",
+   "fieldtype": "Small Text",
+   "label": "Teléfonos",
+   "description": "Uno por línea, en cualquier formato."
+  },
+  {
+   "fieldname": "full_names",
+   "fieldtype": "Small Text",
+   "label": "Nombres completos",
+   "description": "Uno por línea (nombre y apellido). Se reemplazan dentro del texto de correos, notas y tickets. Los nombres de los Leads y Contactos encontrados se añaden solos."
+  },
+  {
+   "fieldname": "subject_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "subject_type",
+   "fieldtype": "Select",
+   "label": "Tipo de titular",
+   "options": "\nB2B\nB2C",
+   "description": "«Buscar datos» lo propone: B2B si está ligado a una empresa con actividad reciente."
+  },
+  {
+   "fieldname": "subject_hashes",
+   "fieldtype": "Small Text",
+   "label": "Identificadores (HMAC)",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "description": "Tras la supresión, el expediente conserva solo estos HMAC en lugar de los correos y teléfonos."
+  },
+  {
+   "fieldname": "resolution_section",
+   "fieldtype": "Section Break",
+   "label": "Resolución",
+   "depends_on": "eval:doc.request_type=='Supresión'"
+  },
+  {
+   "fieldname": "resolution",
+   "fieldtype": "Select",
+   "label": "Resolución",
+   "options": "\nDesasociar\nSuprimir\nConservar — dato profesional",
+   "in_list_view": 1,
+   "description": "Desasociar: anonimiza a la persona y conserva el historial de la empresa cliente (Ley 8968, art. 6.1). Suprimir: supresión completa (Decreto 37554-JP, arts. 25 y 26). Conservar: solo si está habilitado en CORTEC Helpdesk Settings."
+  },
+  {
+   "fieldname": "legal_basis",
+   "fieldtype": "Small Text",
+   "label": "Base legal",
+   "description": "Obligatoria para «Conservar» y cuando hay documentos retenidos. Aparece en la respuesta al titular (Decreto 37554-JP, art. 22)."
+  },
+  {
+   "fieldname": "retained_until",
+   "fieldtype": "Date",
+   "label": "Documentos retenidos hasta",
+   "description": "Si una disposición legal o judicial obliga a mantener algún dato (Decreto 37554-JP, art. 26.b)."
+  },
+  {
+   "fieldname": "resolution_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "content_overrides",
+   "fieldtype": "Code",
+   "label": "Excepciones de contenido",
+   "options": "JSON",
+   "description": "{\"HD Ticket::123\": \"conservar\", \"Communication::abc\": \"redactar\"}. Cambia lo que propone «Buscar datos» para documentos concretos."
+  },
+  {
+   "fieldname": "preview_section",
+   "fieldtype": "Section Break",
+   "label": "Datos encontrados",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "preview_json",
+   "fieldtype": "Code",
+   "label": "Vista previa",
+   "options": "JSON",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "Resultado"
+  },
+  {
+   "fieldname": "executed_on",
+   "fieldtype": "Datetime",
+   "label": "Ejecutada el",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "executed_by",
+   "fieldtype": "Link",
+   "label": "Ejecutada por",
+   "options": "User",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "response_sent_on",
+   "fieldtype": "Date",
+   "label": "Respuesta enviada el",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "result_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "report_json",
+   "fieldtype": "Code",
+   "label": "Informe",
+   "options": "JSON",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "response_section",
+   "fieldtype": "Section Break",
+   "label": "Respuesta al titular"
+  },
+  {
+   "fieldname": "response_text",
+   "fieldtype": "Text",
+   "label": "Texto de la respuesta",
+   "read_only": 1,
+   "allow_on_submit": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cortec Helpdesk",
+ "name": "CORTEC Suppression Request",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "received_on",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

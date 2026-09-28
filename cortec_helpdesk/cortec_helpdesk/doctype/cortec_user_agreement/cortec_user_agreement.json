@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:code",
+ "creation": "2026-09-28 00:00:00.000000",
+ "description": "Acuerdo que el titular acepta al enviar un formulario o al dar su consentimiento por otro canal. Equivale a los «Acuerdos» de los formularios de Bitrix24.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "title",
+  "kind",
+  "agreement_cb",
+  "required",
+  "is_active",
+  "version",
+  "agreement_text_section",
+  "agreement_text"
+ ],
+ "fields": [
+  {
+   "description": "Identificador que usan el Worker leads-intake y las importaciones. No se puede cambiar: los registros de consentimiento lo referencian. El código «politica-privacidad» y el código «promociones» son los que usa cortec_helpdesk.",
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Código",
+   "reqd": 1,
+   "unique": 1,
+   "set_only_once": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Título",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "label": "Tipo",
+   "options": "Política\nPublicidad",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "agreement_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "El formulario web no se acepta si este acuerdo no viene aceptado.",
+   "fieldname": "required",
+   "fieldtype": "Check",
+   "label": "Obligatorio",
+   "in_list_view": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Activo"
+  },
+  {
+   "default": "1",
+   "description": "Sube sola cada vez que cambia el texto. Cada registro de consentimiento guarda la versión y una copia del texto que se aceptó.",
+   "fieldname": "version",
+   "fieldtype": "Int",
+   "label": "Versión",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "agreement_text_section",
+   "fieldtype": "Section Break",
+   "label": "Texto"
+  },
+  {
+   "description": "Debe coincidir con lo que ve el titular en el formulario.",
+   "fieldname": "agreement_text",
+   "fieldtype": "Text Editor",
+   "label": "Texto del acuerdo",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "link_doctype": "CORTEC Consent Record",
+   "link_fieldname": "agreement"
+  }
+ ],
+ "modified": "2026-09-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cortec Helpdesk",
+ "name": "CORTEC User Agreement",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1
+  },
+  {
+   "role": "Agent",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

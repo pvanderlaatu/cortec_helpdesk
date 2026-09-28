@@ -1,0 +1,68 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-29 00:00:00.000000",
+ "description": "Documento anonimizado por una solicitud de supresión. Las importaciones (p. ej. cortec_bitrix24) lo consultan para no volver a escribir datos del titular. No contiene datos personales.",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_doctype",
+  "reference_name",
+  "suppression_request",
+  "suppressed_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Tipo de documento",
+   "options": "DocType",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Documento",
+   "options": "reference_doctype",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "suppression_request",
+   "fieldtype": "Link",
+   "label": "Solicitud",
+   "options": "CORTEC Suppression Request",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "suppressed_on",
+   "fieldtype": "Datetime",
+   "label": "Fecha"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cortec Helpdesk",
+ "name": "CORTEC Suppressed Document",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

@@ -45,8 +45,9 @@
   "fieldtype": "Small Text",
   "label": "Consentimiento de Políticas",
   "insert_after": "custom_comentarios",
-  "description": "Evidencia de que el visitante aceptó la Política de Privacidad/Términos al enviar el formulario web: fecha/hora del envío y versión o URL de la política vigente en ese momento. Lo llena el Worker leads-intake.",
-  "translatable": 0
+  "description": "Solo lectura. Resumen del último evento del acuerdo «politica-privacidad» en el registro de consentimientos (CORTEC Consent Record): acción, canal, fecha, IP, URL y versión del texto aceptado.",
+  "translatable": 0,
+  "read_only": 1
  },
  {
   "doctype": "Custom Field",
@@ -58,8 +59,9 @@
   "label": "Acepta Correos Promocionales",
   "insert_after": "custom_consentimiento",
   "default": "0",
-  "description": "Marcado si el visitante aceptó voluntariamente recibir correos promocionales al enviar el formulario web (checkbox opcional, separado del consentimiento obligatorio de políticas). Lo llena el Worker leads-intake.",
-  "translatable": 0
+  "description": "Solo lectura. Refleja el último evento del acuerdo «promociones» en el registro de consentimientos (CORTEC Consent Record). Se otorga o se revoca con el botón 'Registrar consentimiento', con el formulario web o con una baja de la lista promocional.",
+  "translatable": 0,
+  "read_only": 1
  },
  {
   "doctype": "Custom Field",
@@ -72,8 +74,9 @@
   "insert_after": "custom_acepta_promociones",
   "depends_on": "eval:doc.custom_acepta_promociones",
   "mandatory_depends_on": "eval:doc.custom_acepta_promociones",
-  "description": "Canal y fecha por los que el titular autorizó recibir publicidad (ej. 'Formulario web tecnocr.net 2026-09-18' o 'Telefónico 2026-09-18, registrado por jperez'). Obligatorio cuando 'Acepta Correos Promocionales' está marcado: bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el responsable de la base de datos.",
-  "translatable": 0
+  "description": "Solo lectura. Resumen del último evento del acuerdo «promociones»: acción, canal, fecha, IP, URL y registro. Bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el responsable de la base de datos; la evidencia completa está en CORTEC Consent Record.",
+  "translatable": 0,
+  "read_only": 1
  },
  {
   "doctype": "Custom Field",
@@ -85,8 +88,9 @@
   "label": "Acepta Correos Promocionales",
   "insert_after": "custom_account_manager",
   "default": "0",
-  "description": "Marcado si el contacto autorizó recibir correos promocionales. Equivalente al campo del mismo nombre en CRM Lead, para contactos que nunca fueron Leads.",
-  "translatable": 0
+  "description": "Solo lectura. Refleja el último evento del acuerdo «promociones» para cualquiera de los correos del contacto (CORTEC Consent Record). Se otorga o se revoca con el botón 'Registrar consentimiento'.",
+  "translatable": 0,
+  "read_only": 1
  },
  {
   "doctype": "Custom Field",
@@ -99,7 +103,8 @@
   "insert_after": "custom_acepta_promociones",
   "depends_on": "eval:doc.custom_acepta_promociones",
   "mandatory_depends_on": "eval:doc.custom_acepta_promociones",
-  "description": "Canal y fecha por los que el contacto autorizó recibir publicidad. Obligatorio cuando 'Acepta Correos Promocionales' está marcado: bajo la Ley 8968 la carga de la prueba del consentimiento recae sobre el responsable de la base de datos.",
-  "translatable": 0
+  "description": "Solo lectura. Resumen del último evento del acuerdo «promociones»: acción, canal, fecha, IP, URL y registro. La evidencia completa está en CORTEC Consent Record.",
+  "translatable": 0,
+  "read_only": 1
  }
 ]

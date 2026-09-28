@@ -101,12 +101,37 @@ doc_events = {
         ],
     },
     "CRM Lead": {
-        "validate": "cortec_helpdesk.overrides.consent.require_promotions_consent_origin",
+        "validate": "cortec_helpdesk.overrides.consent.sync_consent_fields",
     },
     "Contact": {
-        "validate": "cortec_helpdesk.overrides.consent.require_promotions_consent_origin",
+        "validate": "cortec_helpdesk.overrides.consent.sync_consent_fields",
     },
     "Email Group Member": {
         "validate": "cortec_helpdesk.overrides.email_group_member.require_registered_consent",
+        "on_update": "cortec_helpdesk.overrides.email_group_member.record_unsubscribe",
     },
+    "Email Unsubscribe": {
+        "after_insert": "cortec_helpdesk.overrides.email_group_member.record_global_unsubscribe",
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Botón «Registrar consentimiento» en el formulario de Desk
+# ---------------------------------------------------------------------------
+doctype_js = {
+    "CRM Lead": "public/js/consent_record.js",
+    "Contact": "public/js/consent_record.js",
+}
+
+# ---------------------------------------------------------------------------
+# Tareas programadas
+# ---------------------------------------------------------------------------
+scheduler_events = {
+    # Bajas de la lista promocional que no pasaron por el hook de
+    # Email Group Member (ver consent_log.reconcile_unsubscribes).
+    "daily": [
+        "cortec_helpdesk.consent_log.reconcile_unsubscribes",
+        # Plazos de las solicitudes de datos personales (privacy.py).
+        "cortec_helpdesk.privacy.daily_privacy_tasks",
+    ],
 }

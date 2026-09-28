@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "CONS-.#######",
+ "creation": "2026-09-28 00:00:00.000000",
+ "description": "Registro inmutable de que un titular otorgó o revocó un consentimiento. Equivale a la pantalla «Consentimiento del usuario» de Bitrix24. Solo se crea desde código (cortec_helpdesk.consent_log.register_consent).",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "agreement",
+  "action",
+  "consent_datetime",
+  "email",
+  "consent_cb",
+  "channel",
+  "reference_doctype",
+  "reference_name",
+  "registered_by",
+  "evidence_section",
+  "ip_address",
+  "page_url",
+  "user_agent",
+  "source_reference",
+  "notes",
+  "agreement_section",
+  "agreement_version",
+  "agreement_text_snapshot"
+ ],
+ "fields": [
+  {
+   "fieldname": "agreement",
+   "fieldtype": "Link",
+   "label": "Acuerdo",
+   "options": "CORTEC User Agreement",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "label": "Acción",
+   "options": "Otorgado\nRevocado",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "consent_datetime",
+   "fieldtype": "Datetime",
+   "label": "Fecha",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Correo",
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Tras una supresión guarda «hmac:» y el HMAC del correo, en lugar del correo."
+  },
+  {
+   "fieldname": "consent_cb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Canal",
+   "options": "Formulario web\nTeléfono\nPresencial\nCorreo\nBaja por correo\nSolicitud del titular\nSupresión\nBitrix24\nHistórico\nOtro",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Tipo de documento",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Documento",
+   "options": "reference_doctype",
+   "search_index": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "description": "Usuario que registró el consentimiento. Vacío en los que llegan solos (formulario web, bajas).",
+   "fieldname": "registered_by",
+   "fieldtype": "Link",
+   "label": "Registrado por",
+   "options": "User"
+  },
+  {
+   "fieldname": "evidence_section",
+   "fieldtype": "Section Break",
+   "label": "Evidencia"
+  },
+  {
+   "fieldname": "ip_address",
+   "fieldtype": "Data",
+   "label": "Dirección IP"
+  },
+  {
+   "fieldname": "page_url",
+   "fieldtype": "Small Text",
+   "label": "Dirección (URL)"
+  },
+  {
+   "fieldname": "user_agent",
+   "fieldtype": "Small Text",
+   "label": "Navegador"
+  },
+  {
+   "description": "Identificador del evento en su origen: el submission_id del Worker, «Bitrix24 actividad #N», la baja que lo produjo… Evita registrar dos veces el mismo evento.",
+   "fieldname": "source_reference",
+   "fieldtype": "Data",
+   "label": "Referencia de origen",
+   "search_index": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notas"
+  },
+  {
+   "fieldname": "agreement_section",
+   "fieldtype": "Section Break",
+   "label": "Texto aceptado",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "agreement_version",
+   "fieldtype": "Int",
+   "label": "Versión del acuerdo"
+  },
+  {
+   "fieldname": "agreement_text_snapshot",
+   "fieldtype": "Text Editor",
+   "label": "Texto del acuerdo en ese momento"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Cortec Helpdesk",
+ "name": "CORTEC Consent Record",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1
+  },
+  {
+   "role": "Agent",
+   "read": 1
+  }
+ ],
+ "sort_field": "consent_datetime",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "email",
+ "track_changes": 0
+}

@@ -21,6 +21,13 @@ AGPL-3.0-or-later — Ver archivo [LICENSE](LICENSE).
    /crm y /helpdesk con los mismos eventos (opcional).
 6. **Avisos por Raven** — mensaje directo de un bot de Raven, sin salir
    del servidor (opcional).
+7. **Registro de consentimientos** — cada consentimiento de privacidad
+   o de publicidad queda como un registro inmutable con fecha, canal,
+   IP, URL y el texto aceptado, al estilo de los «Acuerdos» de Bitrix24
+   (Ley 8968).
+8. **Solicitudes de supresión y revocación** — expediente con los plazos
+   del Decreto 37554-JP, búsqueda de todo lo que Frappe guarda del
+   titular y anonimización irreversible.
 
 ## Estructura
 
@@ -33,6 +40,12 @@ cortec_helpdesk/
 └── cortec_helpdesk/
     ├── __init__.py
     ├── hooks.py
+    ├── api.py                   # Endpoints del Worker leads-intake
+    ├── consent_log.py           # Registro de consentimientos
+    ├── privacy.py               # Solicitudes de supresión (Ley 8968)
+    ├── patches/                 # Migración de los consentimientos antiguos
+    ├── public/js/
+    │   └── consent_record.js    # Botón «Registrar consentimiento»
     └── overrides/
         ├── __init__.py
         ├── hd_ticket.py         # Permisos y asignación automática
@@ -41,7 +54,9 @@ cortec_helpdesk/
         ├── alerts.py            # Despachador: resuelve el evento y reparte
         ├── telegram.py          # Canal Telegram
         ├── raven.py             # Canal Raven
-        └── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
+        ├── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
+        ├── consent.py           # Campos de consentimiento del Lead/Contact
+        └── email_group_member.py  # Altas y bajas de la lista promocional
 ```
 
 ## Instalación
@@ -234,6 +249,131 @@ canal del móvil**.
 | Vinculación por agente | Ninguna | Chat ID | Ninguna |
 | Escritorio | Sí | Con Telegram Desktop | Sí, con /crm o /helpdesk abierto |
 | Móvil con pantalla bloqueada | Solo con push (relay) | Sí | No |
+
+### 9. Registro de consentimientos
+
+Reproduce los «Acuerdos» y la pantalla «Consentimiento del usuario» de
+los formularios de Bitrix24.
+
+- **CORTEC User Agreement** — el texto de cada acuerdo. Cambiar el texto
+  sube la versión. Los dos que usa la app son `politica-privacidad`
+  (obligatorio) y `promociones` (opcional); `bench migrate` los crea con
+  un texto provisional.
+- **CORTEC Consent Record** — un registro por evento (Otorgado o
+  Revocado) con fecha, canal, IP, URL, navegador, quién lo registró y
+  una copia del texto aceptado. Nace enviado y no se puede modificar,
+  cancelar ni borrar. Un error se corrige con otro evento.
+
+Los campos `custom_acepta_promociones`, `custom_promociones_origen` y
+`custom_consentimiento` del CRM Lead y del Contact son **de solo
+lectura**: muestran el último evento del registro para cualquiera de
+sus correos. Por eso el Contact que nace al convertir un Lead hereda el
+consentimiento sin copiar nada.
+
+Entradas al registro:
+
+| Origen | Canal | Cómo |
+| --- | --- | --- |
+| Formulario del sitio | Formulario web | Worker `leads-intake` → `cortec_helpdesk.api.web_lead_intake` |
+| Llamada, visita, correo | Teléfono / Presencial / Correo | Botón **Consentimientos → Registrar consentimiento** en el Lead o Contact (Desk) |
+| Baja de la lista promocional | Baja por correo | Hooks de Email Group Member y Email Unsubscribe, más la conciliación diaria |
+| Campos anteriores a v1.0.12 | Histórico | Patch `migrate_consent_fields` |
+| Bitrix24 | Bitrix24 | `cortec_bitrix24.api.import_webform_consents` |
+
+Otorgar el acuerdo `promociones` suscribe el correo a la lista
+promocional (o lo reactiva si se había dado de baja). Revocar lo da de
+baja. El patch y la importación de Bitrix24 no tocan la lista.
+
+**Configuración**
+
+1. `bench migrate`.
+2. **CORTEC User Agreement** → abrir `politica-privacidad` y
+   `promociones` y pegar el texto **exacto** que muestra el formulario
+   del sitio. Cada sitio tiene los suyos: no son fixtures.
+3. Desplegar el Worker `leads-intake` que llama a `web_lead_intake`.
+
+**Limitaciones**
+
+- Un Lead o Contact con consentimientos registrados no se puede borrar:
+  Frappe no borra documentos enlazados desde registros enviados. Las
+  solicitudes de supresión se atienden anonimizando (sección 10).
+- El botón está en el formulario de Desk (`/app/crm-lead/...`). La
+  interfaz `/crm` muestra los campos, pero todavía no tiene el botón.
+
+### 10. Solicitudes de supresión y revocación (Ley 8968)
+
+Cada solicitud de un titular se tramita en un **CORTEC Suppression
+Request**, que solo usa el System Manager. El expediente no se puede
+cancelar ni borrar.
+
+**Plazos** (Decreto 37554-JP). Se calculan en días hábiles, descontando
+sábados, domingos y los feriados de `CORTEC Helpdesk Settings → Feriados`:
+
+| Plazo | Artículo |
+| --- | --- |
+| Responder: 5 días hábiles desde el día siguiente a la recepción | 18 |
+| Pedir información adicional: una sola vez, dentro de esos 5 días. El plazo se pausa; si el titular no responde en 5 días hábiles, la solicitud se tiene por no presentada | 19 |
+| Confirmar el cese del tratamiento, si lo pide: 3 días hábiles | 9 |
+| Informar la revocación a los encargados: 5 días hábiles | 8 |
+
+Una tarea diaria avisa a los System Manager de las solicitudes que vencen
+y marca como «No presentada» las que esperaban información que no llegó.
+
+**Flujo**
+
+1. Crear la solicitud: tipo (Supresión o Revocación), fecha de recepción,
+   medio de notificación (art. 17), cómo se acreditó la identidad
+   (art. 15), y los correos, teléfonos y nombres del titular.
+2. **Buscar datos**. Lista todo lo que se encontró, si el contenido de
+   cada documento se conserva o se redacta, y propone B2B o B2C.
+3. Elegir la resolución y enviar. Se ejecuta en segundo plano.
+4. Revisar el **informe** y el **texto de la respuesta**, enviarla al
+   titular y pulsar **Marcar respuesta enviada** (borra el medio de
+   notificación).
+
+**Resoluciones de una supresión**
+
+| Resolución | Para | Efecto |
+| --- | --- | --- |
+| Desasociar | B2B | Anonimiza a la persona y conserva el contenido de tickets, negociaciones y correos, sin sus identificadores. La quita de la empresa (Ley 8968, art. 6.1) |
+| Suprimir | B2C | Anonimiza a la persona y redacta el contenido y los adjuntos. Los documentos de una empresa cliente conservan su contenido sin los identificadores |
+| Conservar — dato profesional | B2B | No anonimiza; revoca la publicidad y genera la negativa escrita (art. 22). **Apagada** hasta activar *Permitir «Conservar — dato profesional»* en Settings (Decreto art. 3, último párrafo: confirmar con el asesor legal) |
+
+Una **Revocación** solo retira los consentimientos y da de baja de la
+lista promocional; no anonimiza.
+
+**Qué hace la supresión**
+
+- Leads y Contacts del titular: datos sustituidos por `Suprimido <hash>`
+  y `suprimido-<hash>@suprimido.invalid`. Los Contacts se renombran
+  (`rename_doc` actualiza todos los enlaces).
+- Correos, notas, comentarios, tareas, llamadas, WhatsApp y tickets: se
+  reemplazan su correo, sus teléfonos y sus nombres completos dentro del
+  texto, o se redacta el contenido.
+- Se borran: adjuntos de lo redactado, Version, Activity Log, cola de
+  correo, Deleted Document, miembros de listas y bajas de correo.
+- Usuarios del portal (Website User): anonimizados y desactivados.
+- Registro de consentimientos: se registra un Revocado «Supresión». El
+  correo pasa a su HMAC y se borran la IP, la URL y el navegador. Así
+  se conserva la prueba del consentimiento (Decreto art. 6) sin guardar
+  el correo en claro.
+- El expediente guarda solo los HMAC de los identificadores.
+- Todo documento tocado queda en **CORTEC Suppressed Document**, y
+  cortec_bitrix24 no vuelve a escribir en él.
+
+El HMAC usa la `encryption_key` del sitio. **Sin esa clave no se puede
+comprobar si un correo fue suprimido**: debe estar en las copias de
+seguridad de `site_config.json`.
+
+**Límites**
+
+- Solo se reemplazan nombres de dos o más palabras. Apodos, firmas
+  escaneadas, cédulas y datos escritos de otra forma no se detectan:
+  revise en «Buscar datos» lo que se marcó «conservar».
+- El informe lista siempre los pasos que Frappe no puede hacer: copias
+  de seguridad, buzones IMAP, avisos ya enviados por Telegram o Raven,
+  Error Log y exportaciones previas.
+- Usuarios internos de Frappe (agentes): se tratan a mano.
 
 ## Flujo de un ticket
 
