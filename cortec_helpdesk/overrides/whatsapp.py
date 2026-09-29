@@ -27,10 +27,10 @@ genera nada visible cuando no encuentra ningún match, o cuando el único
 match es un Contact suelto o un Lead/Deal ya cerrado.
 
 route_unclaimed_message  — en after_insert de un WhatsApp Message
-                            Incoming: si no quedó vinculado a un Lead/Deal
-                            con status "Open", crea un CRM Lead nuevo,
-                            vincula el mensaje a él y notifica al agente
-                            que haya quedado asignado.
+                            Incoming: reutiliza el Lead/Deal en
+                            seguimiento del mismo número si existe, y
+                            solo crea un CRM Lead nuevo cuando no hay
+                            ninguno. Después notifica al agente asignado.
 
 La asignación del Lead nuevo NO se reimplementa aquí: se deja que la
 misma estrategia de asignación que Frappe/CRM ya aplican a los Leads
@@ -42,6 +42,21 @@ import frappe
 
 
 # ---------------------------------------------------------------------------
+# Constantes
+# ---------------------------------------------------------------------------
+
+# Tipos de status de CRM Lead Status / CRM Deal Status que cuentan como
+# cerrado. Los demás ("Open", "Ongoing", "On Hold") son seguimiento vivo:
+# un WhatsApp nuevo va al Lead/Deal existente, NO crea otro.
+CLOSED_STATUS_TYPES = {"Won", "Lost"}
+
+# Últimos dígitos que se comparan al buscar un Lead/Deal por teléfono.
+# Evita que "+50661591066", "50661591066" y "61591066" se traten como
+# números distintos.
+PHONE_MATCH_DIGITS = 8
+
+
+# ---------------------------------------------------------------------------
 # Hook principal
 # ---------------------------------------------------------------------------
 
@@ -49,12 +64,18 @@ def route_unclaimed_message(doc, method: str = None) -> None:
     """
     Hook ``after_insert`` en WhatsApp Message.
 
-    Solo actúa sobre mensajes Incoming. Si crm.api.whatsapp.validate ya
-    vinculó el mensaje a un CRM Lead o CRM Deal con status de tipo
-    "Open", no hace nada (CRM ya notifica nativamente vía su propio
-    on_update). En cualquier otro caso (sin vínculo, vínculo a un
-    Contact suelto, o vínculo a un Lead/Deal cerrado) crea un CRM Lead
-    nuevo y vincula el mensaje a él.
+    Solo actúa sobre mensajes Incoming, y en este orden:
+
+      1. Si crm.api.whatsapp.validate ya vinculó el mensaje a un CRM
+         Lead o CRM Deal en seguimiento, no hace nada (CRM ya notifica
+         vía su propio on_update).
+      2. Si no, busca por teléfono un Lead/Deal en seguimiento y vincula
+         el mensaje a él. Cubre los casos en que el match de CRM falla
+         por el formato del número.
+      3. Solo si no hay nada, crea un CRM Lead nuevo.
+
+    Así, un cliente que ya tiene un Lead en "Contacted" o "Nurture" no
+    genera un Lead nuevo con cada mensaje.
 
     Defensivo: un error aquí nunca debe interrumpir la recepción del
     mensaje de WhatsApp (corre en el flujo de un webhook entrante).
@@ -71,25 +92,33 @@ def route_unclaimed_message(doc, method: str = None) -> None:
             )
             return
 
-        if _has_open_reference(doc):
-            # CRM ya lo tiene vinculado a algo abierto; su propio
-            # notify_agent (on_update) se encarga de notificar.
+        if _has_active_reference(doc):
+            # CRM ya lo tiene vinculado a un Lead/Deal en seguimiento;
+            # su propio notify_agent (on_update) se encarga de notificar.
             return
 
-        lead_name = _create_lead_from_message(doc, phone_number)
-        if not lead_name:
-            return
-
-        _link_message_to_lead(doc, lead_name)
+        existing = _find_active_reference_by_phone(phone_number)
+        if existing:
+            doctype, name = existing
+            _link_message_to(doc, doctype, name)
+            frappe.logger("cortec_helpdesk").info(
+                f"WhatsApp Message {doc.name} → {doctype} {name} existente "
+                f"({phone_number})"
+            )
+        else:
+            name = _create_lead_from_message(doc, phone_number)
+            if not name:
+                return
+            doctype = "CRM Lead"
+            _link_message_to(doc, doctype, name)
+            frappe.logger("cortec_helpdesk").info(
+                f"WhatsApp Message {doc.name} → CRM Lead {name} nuevo "
+                f"({phone_number})"
+            )
 
         from crm.api.whatsapp import notify_agent
 
         notify_agent(doc)
-
-        frappe.logger("cortec_helpdesk").info(
-            f"WhatsApp Message {doc.name} → CRM Lead {lead_name} "
-            f"({phone_number})"
-        )
 
     except Exception as e:
         frappe.log_error(
@@ -102,12 +131,18 @@ def route_unclaimed_message(doc, method: str = None) -> None:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _has_open_reference(doc) -> bool:
+def _has_active_reference(doc) -> bool:
     """
     True si doc.reference_doctype/reference_name (ya fijados por
-    crm.api.whatsapp.validate) apuntan a un CRM Lead o CRM Deal cuyo
-    status es de tipo "Open". Un Contact suelto, o un Lead/Deal
-    cerrado/ganado/perdido, cuentan como "no abierto".
+    crm.api.whatsapp.validate) apuntan a un CRM Lead o CRM Deal en
+    seguimiento, es decir, cuyo status NO es de tipo "Won" ni "Lost".
+
+    Un Contact suelto cuenta como "no activo": no hay Lead/Deal donde
+    aparezca la conversación.
+
+    Antes solo se aceptaba el tipo "Open", así que un Lead en
+    "Contacted", "Nurture" o "Qualified" (tipo "Ongoing") generaba un
+    Lead nuevo con cada mensaje del mismo cliente.
     """
     doctype = doc.get("reference_doctype")
     name = doc.get("reference_name")
@@ -120,22 +155,66 @@ def _has_open_reference(doc) -> bool:
 
     status = frappe.db.get_value(doctype, name, "status")
     if not status:
-        return False
+        # Sin status no se puede saber: se reutiliza el vínculo igual,
+        # que es preferible a duplicar.
+        return True
 
     status_doctype = "CRM Lead Status" if doctype == "CRM Lead" else "CRM Deal Status"
     try:
         status_type = frappe.get_cached_value(status_doctype, status, "type")
     except Exception:
-        # Si CRM Deal Status no tuviera el campo "type" (estructura no
-        # confirmada al 100%), tratamos el vínculo como NO abierto para
-        # no dejar mensajes sin atender, en vez de romper el flujo.
         frappe.log_error(
             title="CORTEC WhatsApp: no se pudo leer 'type' de status",
             message=f"{status_doctype} / {status} (WhatsApp Message {doc.name})",
         )
-        return False
+        # Ante la duda, NO crear otro Lead.
+        return True
 
-    return status_type == "Open"
+    return status_type not in CLOSED_STATUS_TYPES
+
+
+def _find_active_reference_by_phone(phone_number: str) -> tuple[str, str] | None:
+    """
+    Busca un CRM Deal o CRM Lead en seguimiento cuyo teléfono coincida en
+    los últimos PHONE_MATCH_DIGITS dígitos. Red de seguridad para cuando
+    el match de crm.api.whatsapp falla por formato ("+506…" contra
+    "506…"), que es la otra vía por la que se duplicaban Leads.
+
+    Devuelve (doctype, name) del más reciente, o None.
+    """
+    digits = "".join(c for c in (phone_number or "") if c.isdigit())
+    if len(digits) < PHONE_MATCH_DIGITS:
+        return None
+
+    tail = digits[-PHONE_MATCH_DIGITS:]
+
+    # Primero Deals: si el cliente ya avanzó a negociación, la
+    # conversación pertenece ahí.
+    for doctype in ("CRM Deal", "CRM Lead"):
+        meta = frappe.get_meta(doctype)
+        phone_fields = [f for f in ("mobile_no", "phone") if meta.has_field(f)]
+        if not phone_fields:
+            continue
+
+        rows = frappe.get_all(
+            doctype,
+            or_filters=[[field, "like", f"%{tail}%"] for field in phone_fields],
+            fields=["name", "status"],
+            order_by="modified desc",
+            limit=20,
+        )
+        status_doctype = "CRM Lead Status" if doctype == "CRM Lead" else "CRM Deal Status"
+        for row in rows:
+            if not row.status:
+                return doctype, row.name
+            try:
+                status_type = frappe.get_cached_value(status_doctype, row.status, "type")
+            except Exception:
+                return doctype, row.name
+            if status_type not in CLOSED_STATUS_TYPES:
+                return doctype, row.name
+
+    return None
 
 
 def _create_lead_from_message(doc, phone_number: str) -> str | None:
@@ -193,9 +272,9 @@ def _create_lead_from_message(doc, phone_number: str) -> str | None:
     return lead.name
 
 
-def _link_message_to_lead(doc, lead_name: str) -> None:
+def _link_message_to(doc, doctype: str, name: str) -> None:
     """
-    Vincula el WhatsApp Message al Lead recién creado.
+    Vincula el WhatsApp Message al Lead o Deal resuelto.
 
     Usa frappe.db.set_value (no doc.save()) para no re-disparar
     validate/on_update de WhatsApp Message de forma anidada dentro de su
@@ -205,12 +284,12 @@ def _link_message_to_lead(doc, lead_name: str) -> None:
     frappe.db.set_value(
         "WhatsApp Message", doc.name,
         {
-            "reference_doctype": "CRM Lead",
-            "reference_name": lead_name,
+            "reference_doctype": doctype,
+            "reference_name": name,
         },
         update_modified=False,
     )
     # Refleja el cambio también en el objeto en memoria, ya que
     # notify_agent(doc) se llama sobre este mismo doc a continuación.
-    doc.reference_doctype = "CRM Lead"
-    doc.reference_name = lead_name
+    doc.reference_doctype = doctype
+    doc.reference_name = name

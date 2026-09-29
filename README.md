@@ -452,6 +452,51 @@ for dt, email in DOCTYPE_EMAIL_MAP.items():
     print(f"  {'OK' if acc else 'XX'}  {dt} → {email} → {acc}")
 ```
 
+### Leads duplicados por WhatsApp
+
+Lista los números con más de un CRM Lead, para revisarlos y unificarlos a mano:
+
+```python
+import frappe
+filas = frappe.db.sql("""
+    SELECT RIGHT(REGEXP_REPLACE(mobile_no, '[^0-9]', ''), 8) AS tel,
+           COUNT(*) AS n, GROUP_CONCAT(name) AS leads
+    FROM `tabCRM Lead`
+    WHERE IFNULL(mobile_no, '') != ''
+    GROUP BY tel HAVING n > 1
+    ORDER BY n DESC
+""", as_dict=True)
+
+for f in filas:
+    print(f"{f.tel}  x{f.n}  {f.leads}")
+```
+
+Desde v1.0.12 ya no se generan nuevos duplicados: un WhatsApp de un número con
+un Lead o Deal en seguimiento se vincula al existente.
+
+### Unificar los duplicados que ya existen
+
+`cortec_helpdesk.merge_whatsapp_leads` conserva el Lead **más antiguo** de cada
+número, le mueve el historial (WhatsApp, correos, notas, tareas, llamadas,
+comentarios y adjuntos) y marca los demás como **Junk**. No borra nada.
+
+```bash
+bench --site sitio.dominio.com backup     # primero, siempre
+bench --site sitio.dominio.com console
+```
+
+```python
+from cortec_helpdesk.merge_whatsapp_leads import report, merge
+
+report()                                  # lista los grupos duplicados
+merge()                                   # simulacro: no toca nada
+merge(dry_run=False)                      # aplica los cambios
+merge(phone="61591066", dry_run=False)    # un solo número
+```
+
+Los grupos con algún Lead ya convertido a Deal se omiten y se reportan: detrás
+hay una negociación, así que se revisan a mano.
+
 ### Ver errores recientes
 
 ```python
