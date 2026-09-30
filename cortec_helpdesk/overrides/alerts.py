@@ -65,6 +65,10 @@ def on_whatsapp_message(doc, method: str = None) -> None:
     mensaje (corre en el flujo del webhook entrante).
     """
     try:
+        # Histórico que llega por la migración desde Bitrix24: ni avisos
+        # ni Leads nuevos por mensajes de hace años.
+        if frappe.flags.get("in_bitrix24_migration"):
+            return
         if doc.type != "Incoming":
             return
         if not _any_channel_enabled("whatsapp"):
@@ -89,6 +93,10 @@ def on_communication(doc, method: str = None) -> None:
     referencian un doctype de REFERENCE_DOCTYPES.
     """
     try:
+        # Histórico que llega por la migración desde Bitrix24: ni avisos
+        # ni Leads nuevos por mensajes de hace años.
+        if frappe.flags.get("in_bitrix24_migration"):
+            return
         if doc.communication_medium != "Email":
             return
         if doc.sent_or_received != "Received":

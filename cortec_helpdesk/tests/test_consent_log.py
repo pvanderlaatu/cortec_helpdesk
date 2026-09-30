@@ -236,3 +236,72 @@ class TestConsentLog(TestCase):
         )
         self.assertEqual(again["lead"], result["lead"])
         self.assertTrue(again["duplicate"])
+
+    # -- lista promocional: estado vigente ------------------------------------
+
+    def _member(self, email):
+        return frappe.db.get_value(
+            "Email Group Member",
+            {"email_group": get_promotions_email_group(), "email": email},
+            ["name", "unsubscribed"],
+            as_dict=True,
+        )
+
+    def test_consentimiento_historico_no_pasa_por_encima_de_una_baja_posterior(self):
+        email = _email("historico")
+        register_consent(
+            PROMOTIONS_AGREEMENT,
+            REVOKED,
+            email,
+            channel="Baja por correo",
+            consent_datetime="2025-06-01 00:00:00",
+        )
+        register_consent(
+            PROMOTIONS_AGREEMENT,
+            GRANTED,
+            email,
+            channel="Bitrix24",
+            consent_datetime="2024-03-01 00:00:00",
+        )
+        member = self._member(email)
+        self.assertTrue(not member or member.unsubscribed)
+
+    def test_consentimiento_historico_no_reactiva_a_quien_se_dio_de_baja(self):
+        email = _email("reactiva")
+        register_consent(
+            PROMOTIONS_AGREEMENT,
+            GRANTED,
+            email,
+            channel="Formulario web",
+            consent_datetime="2024-01-01 00:00:00",
+        )
+        member = self._member(email)
+        # Baja escrita directo (como el enlace de los correos), sin registro.
+        frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 1)
+
+        register_consent(
+            PROMOTIONS_AGREEMENT,
+            GRANTED,
+            email,
+            channel="Bitrix24",
+            consent_datetime="2024-06-01 00:00:00",
+        )
+        self.assertEqual(self._member(email).unsubscribed, 1)
+
+    def test_consentimiento_nuevo_si_reactiva(self):
+        email = _email("nuevo")
+        register_consent(PROMOTIONS_AGREEMENT, GRANTED, email, channel="Formulario web")
+        member = self._member(email)
+        frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 1)
+
+        register_consent(PROMOTIONS_AGREEMENT, GRANTED, email, channel="Formulario web")
+        self.assertEqual(self._member(email).unsubscribed, 0)
+
+    def test_baja_global_impide_suscribir(self):
+        email = _email("global")
+        frappe.get_doc(
+            {"doctype": "Email Unsubscribe", "email": email, "global_unsubscribe": 1}
+        ).insert(ignore_permissions=True)
+
+        register_consent(PROMOTIONS_AGREEMENT, GRANTED, email, channel="Bitrix24")
+        self.assertIsNone(self._member(email))

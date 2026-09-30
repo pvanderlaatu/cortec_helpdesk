@@ -81,6 +81,10 @@ def route_unclaimed_message(doc, method: str = None) -> None:
     mensaje de WhatsApp (corre en el flujo de un webhook entrante).
     """
     try:
+        # Histórico que llega por la migración desde Bitrix24: ni avisos
+        # ni Leads nuevos por mensajes de hace años.
+        if frappe.flags.get("in_bitrix24_migration"):
+            return
         if doc.type != "Incoming":
             return
 

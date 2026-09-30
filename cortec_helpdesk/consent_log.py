@@ -79,6 +79,11 @@ PRIVACY_FIELD = "custom_consentimiento"
 # Límite de un campo Data en Frappe.
 DATA_MAX_LENGTH = 140
 
+# Canales en los que el titular consiente AHORA: pueden reactivar en la
+# lista promocional a quien se había dado de baja. Un consentimiento
+# histórico (Bitrix24, Histórico) nunca pasa por encima de una baja.
+FRESH_CONSENT_CHANNELS = ("Formulario web", "Teléfono", "Presencial", "Correo")
+
 # Prefijo del correo en un registro redactado por una supresión
 # (privacy.py): «hmac:» seguido del HMAC-SHA256 del correo.
 TOKEN_PREFIX = "hmac:"
@@ -415,13 +420,20 @@ def email_token(email: str) -> str:
 
 def _apply_to_mailing_list(record) -> None:
     """
-    Refleja el evento en el Email Group promocional.
+    Refleja en el Email Group promocional el estado VIGENTE del correo:
+    el último evento por fecha, no el registro que acaba de entrar. Un
+    consentimiento de 2024 importado hoy no suscribe a quien revocó en
+    2025.
 
-    Otorgar suscribe (o reactiva a quien se había dado de baja: un nuevo
-    consentimiento explícito es justo la decisión que faltaba para
-    reactivarlo). Revocar da de baja. Se escribe con db.set_value para
-    no volver a disparar el hook de bajas de Email Group Member, que
-    registraría otra revocación.
+    - Último evento Revocado: se da de baja.
+    - Último evento Otorgado: se suscribe, salvo baja global del sitio
+      (Email Unsubscribe). A quien estaba dado de baja solo lo reactiva
+      un consentimiento nuevo (FRESH_CONSENT_CHANNELS) que sea además
+      ese último evento; uno histórico importado nunca.
+
+    Dar de alta un Email Group Member no envía correo. Se escribe con
+    db.set_value para no volver a disparar el hook de bajas de Email
+    Group Member, que registraría otra revocación.
     """
     group = get_promotions_email_group()
     if not frappe.db.exists("Email Group", group):
@@ -438,21 +450,30 @@ def _apply_to_mailing_list(record) -> None:
         as_dict=True,
     )
 
-    if record.action == GRANTED:
-        if not member:
-            frappe.get_doc(
-                {
-                    "doctype": "Email Group Member",
-                    "email_group": group,
-                    "email": record.email,
-                }
-            ).insert(ignore_permissions=True)
-        elif member.unsubscribed:
-            frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 0)
+    latest = latest_record(PROMOTIONS_AGREEMENT, [record.email])
+
+    if not latest or latest.action != GRANTED:
+        if member and not member.unsubscribed:
+            frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 1)
         return
 
-    if member and not member.unsubscribed:
-        frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 1)
+    if frappe.db.exists("Email Unsubscribe", {"email": record.email, "global_unsubscribe": 1}):
+        return
+
+    if not member:
+        frappe.get_doc(
+            {
+                "doctype": "Email Group Member",
+                "email_group": group,
+                "email": record.email,
+            }
+        ).insert(ignore_permissions=True)
+    elif (
+        member.unsubscribed
+        and latest.name == record.name
+        and record.channel in FRESH_CONSENT_CHANNELS
+    ):
+        frappe.db.set_value("Email Group Member", member.name, "unsubscribed", 0)
 
 
 def revoke_promotions_for_unsubscribe(

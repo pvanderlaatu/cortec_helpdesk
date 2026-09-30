@@ -280,9 +280,21 @@ Entradas al registro:
 | Campos anteriores a v1.0.12 | Histórico | Patch `migrate_consent_fields` |
 | Bitrix24 | Bitrix24 | `cortec_bitrix24.api.import_webform_consents` |
 
-Otorgar el acuerdo `promociones` suscribe el correo a la lista
-promocional (o lo reactiva si se había dado de baja). Revocar lo da de
-baja. El patch y la importación de Bitrix24 no tocan la lista.
+La lista promocional sigue el **último evento** de cada correo:
+
+- Si es un Revocado, el correo se da de baja.
+- Si es un Otorgado, se suscribe, salvo que tenga una baja global de
+  correos del sitio.
+- A quien estaba dado de baja solo lo reactiva un consentimiento **nuevo**
+  (formulario web, teléfono, presencial o correo). Uno histórico
+  (Bitrix24, Histórico) nunca pasa por encima de una baja.
+
+El patch no toca la lista. La importación de Bitrix24 solo lo hace con
+`'subscribe': 1`.
+
+Durante la migración desde Bitrix24 (`frappe.flags.in_bitrix24_migration`),
+los avisos a agentes y la creación de Leads por WhatsApp no actúan sobre
+el histórico.
 
 **Configuración**
 
