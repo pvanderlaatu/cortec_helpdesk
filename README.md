@@ -1,3 +1,5 @@
+**Español** | [English](README.en.md)
+
 # CORTEC Helpdesk
 
 Customizaciones de Frappe Helpdesk para Corporación de Tecnología CORTEC S.R.L.
@@ -36,7 +38,8 @@ cortec_helpdesk/
 ├── LICENSE
 ├── setup.py
 ├── requirements.txt
-├── README.md
+├── README.md                   # español
+├── README.en.md                # inglés
 └── cortec_helpdesk/
     ├── __init__.py
     ├── hooks.py
