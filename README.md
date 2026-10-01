@@ -2,7 +2,7 @@
 
 # CORTEC Helpdesk
 
-Customizaciones de Frappe Helpdesk para Corporación de Tecnología CORTEC S.R.L.
+Personalizaciones de Frappe Helpdesk para Corporación de Tecnología CORTEC S.R.L.
 
 ## Licencia
 
