@@ -1188,7 +1188,12 @@ def daily_privacy_tasks() -> None:
 
 
 def _doctype_exists(doctype: str) -> bool:
-    cache = frappe.local.__dict__.setdefault("_privacy_doctypes", {})
+    # getattr/setattr, no `frappe.local.__dict__`: en Frappe v16
+    # frappe.local ya no tiene `__dict__`.
+    cache = getattr(frappe.local, "_privacy_doctypes", None)
+    if cache is None:
+        cache = {}
+        frappe.local._privacy_doctypes = cache
     if doctype not in cache:
         cache[doctype] = bool(frappe.db.exists("DocType", doctype))
     return cache[doctype]
