@@ -57,6 +57,7 @@ cortec_helpdesk/
         ├── alerts.py            # Despachador: resuelve el evento y reparte
         ├── telegram.py          # Canal Telegram
         ├── raven.py             # Canal Raven
+        ├── whatsapp_message.py  # Adjuntos: subida a Meta
         ├── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
         ├── consent.py           # Campos de consentimiento del Lead/Contact
         └── email_group_member.py  # Altas y bajas de la lista promocional
@@ -139,7 +140,43 @@ Configuración del Sistema
   → Run Jobs only Daily if Inactive For (Days) → 365
 ```
 
-### 6. Avisos por Telegram (opcional)
+### 6. Adjuntos de WhatsApp
+
+`frappe_whatsapp` no sube los archivos a Meta: le manda un **enlace** y le
+pide que lo descargue. El CRM sube los adjuntos como **privados**
+(`/private/files/…`), que exigen sesión iniciada, así que Meta recibe un 403
+y el mensaje queda en `failed`. Pasa con imágenes, documentos, videos y audios.
+
+Esta app lo corrige con una subclase de WhatsApp Message
+(`overrides/whatsapp_message.py`, registrada con `override_doctype_class`):
+
+- **Sube el archivo al endpoint `/media` de Meta** y envía el mensaje con el
+  `media_id`. El archivo **sigue siendo privado**: se lee con `get_content()`
+  y nunca se expone por HTTP.
+- **Documentos:** se envía también el `filename`, el nombre con el que el
+  cliente ve y guarda el archivo.
+- **No manda la ruta como pie de foto.** El CRM guarda la ruta del archivo en
+  el campo `message` y `frappe_whatsapp` la enviaba como `caption`.
+- **Nunca deja `message` en NULL.** `WhatsAppArea.vue` del CRM hace
+  `whatsapp.message.startsWith('/files/')` sin comprobar nulos: un solo
+  mensaje sin texto deja **toda la conversación en blanco**.
+
+Se desactiva en `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp**.
+Apagado, se vuelve al comportamiento original de `frappe_whatsapp`.
+
+**Si la subida falla**, el mensaje queda en `Failed` y el motivo en Error Log
+("CORTEC WhatsApp: …"). Nunca se publica un archivo de forma automática.
+
+Límites de Meta: imagen 5 MB, video 16 MB, audio 16 MB, documento 100 MB.
+
+Para reparar conversaciones que ya se quedaron en blanco:
+
+```python
+from cortec_helpdesk.overrides.whatsapp_message import fix_null_messages
+fix_null_messages()
+```
+
+### 7. Avisos por Telegram (opcional)
 
 Frappe CRM y Helpdesk solo avisan en pantalla. Con esta opción, el agente
 asignado recibe un mensaje de un bot de Telegram (con sonido, aunque el
@@ -185,7 +222,7 @@ enlaces del aviso apunten al dominio correcto, y los workers de la cola
 - Si el agente tiene Telegram abierto en el ordenador, Telegram puede no
   avisar en el móvil mientras tanto.
 
-### 7. Alertas en el navegador (opcional)
+### 8. Alertas en el navegador (opcional)
 
 Mientras el agente tiene **/crm** o **/helpdesk** abierto (aunque la
 pestaña esté en segundo plano), suena un tono cuando entra un WhatsApp o un
@@ -217,7 +254,7 @@ Telegram en el móvil).
 - En el móvil solo suena con la página en pantalla; para el móvil usar
   Telegram.
 
-### 8. Avisos por Raven (opcional)
+### 9. Avisos por Raven (opcional)
 
 Mensaje directo de un bot de Raven al agente asignado, con los mismos
 eventos que Telegram. **Raven corre en este mismo servidor**, así que el
@@ -253,7 +290,7 @@ canal del móvil**.
 | Escritorio | Sí | Con Telegram Desktop | Sí, con /crm o /helpdesk abierto |
 | Móvil con pantalla bloqueada | Solo con push (relay) | Sí | No |
 
-### 9. Registro de consentimientos
+### 10. Registro de consentimientos
 
 Reproduce los «Acuerdos» y la pantalla «Consentimiento del usuario» de
 los formularios de Bitrix24.
@@ -315,7 +352,7 @@ el histórico.
 - El botón está en el formulario de Desk (`/app/crm-lead/...`). La
   interfaz `/crm` muestra los campos, pero todavía no tiene el botón.
 
-### 10. Solicitudes de supresión y revocación (Ley 8968)
+### 11. Solicitudes de supresión y revocación (Ley 8968)
 
 Cada solicitud de un titular se tramita en un **CORTEC Suppression
 Request**, que solo usa el System Manager. El expediente no se puede

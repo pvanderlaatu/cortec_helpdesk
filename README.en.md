@@ -60,6 +60,7 @@ cortec_helpdesk/
         ├── alerts.py            # dispatcher: resolves the event and fans out
         ├── telegram.py          # Telegram channel
         ├── raven.py             # Raven channel
+        ├── whatsapp_message.py  # attachments: upload to Meta
         ├── browser_alerts.py    # audible alerts in /crm and /helpdesk
         ├── consent.py           # consent fields on Lead/Contact
         └── email_group_member.py  # marketing list subscribe/unsubscribe
@@ -141,7 +142,43 @@ System Settings
   → Run Jobs only Daily if Inactive For (Days) → 365
 ```
 
-### 6. Telegram alerts (optional)
+### 6. WhatsApp attachments
+
+`frappe_whatsapp` does not upload files to Meta: it sends a **link** and asks
+Meta to download it. The CRM uploads attachments as **private**
+(`/private/files/…`), which require a session, so Meta gets a 403 and the
+message ends up `failed`. This affects images, documents, videos and audio.
+
+This app fixes it with a WhatsApp Message subclass
+(`overrides/whatsapp_message.py`, registered via `override_doctype_class`):
+
+- **Uploads the file to Meta's `/media` endpoint** and sends the message with
+  the `media_id`. The file **stays private**: it is read with `get_content()`
+  and never exposed over HTTP.
+- **Documents:** the `filename` is sent too, the name the customer sees and
+  saves.
+- **Does not send the path as a caption.** The CRM stores the file path in the
+  `message` field and `frappe_whatsapp` was sending it as the `caption`.
+- **Never leaves `message` NULL.** The CRM's `WhatsAppArea.vue` calls
+  `whatsapp.message.startsWith('/files/')` with no null guard: a single
+  message without text blanks out **the whole conversation**.
+
+Turn it off in `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp** (WhatsApp
+attachments) to fall back to stock `frappe_whatsapp` behaviour.
+
+**If the upload fails**, the message stays `Failed` and the reason goes to the
+Error Log ("CORTEC WhatsApp: …"). No file is ever made public automatically.
+
+Meta limits: image 5 MB, video 16 MB, audio 16 MB, document 100 MB.
+
+To repair conversations that already went blank:
+
+```python
+from cortec_helpdesk.overrides.whatsapp_message import fix_null_messages
+fix_null_messages()
+```
+
+### 7. Telegram alerts (optional)
 
 Frappe CRM and Helpdesk only alert on screen. With this option, the assigned
 agent gets a message from a Telegram bot — audible even with the phone locked —
@@ -186,7 +223,7 @@ right domain, and the `short` queue workers must be running.
 - If the agent has Telegram open on their computer, Telegram may not notify the
   phone meanwhile.
 
-### 7. Browser alerts (optional)
+### 8. Browser alerts (optional)
 
 While the agent has **/crm** or **/helpdesk** open — even with the tab in the
 background — a tone plays when a WhatsApp message or an email from a customer
@@ -215,7 +252,7 @@ they can be used together (browser on the desktop, Telegram on the phone).
 - With /crm and /helpdesk both open, it sounds only once.
 - On mobile it only sounds while the page is on screen; use Telegram for phones.
 
-### 8. Raven alerts (optional)
+### 9. Raven alerts (optional)
 
 A direct message from a Raven bot to the assigned agent, on the same events as
 Telegram. **Raven runs on this same server**, so the alert never reaches an
@@ -250,7 +287,7 @@ remains the mobile channel**.
 | Desktop | Yes | With Telegram Desktop | Yes, with /crm or /helpdesk open |
 | Phone with locked screen | Only with push (relay) | Yes | No |
 
-### 9. Consent log
+### 10. Consent log
 
 Mirrors the "Agreements" and the "User consent" screen of Bitrix24 web forms.
 
@@ -308,7 +345,7 @@ alerts and WhatsApp lead creation do not act on the historical data.
 - The button lives on the Desk form (`/app/crm-lead/...`). The `/crm` interface
   shows the fields but does not have the button yet.
 
-### 10. Erasure and revocation requests (Law 8968)
+### 11. Erasure and revocation requests (Law 8968)
 
 Each data subject request is handled in a **CORTEC Suppression Request**, used
 only by the System Manager. The case file cannot be cancelled or deleted.

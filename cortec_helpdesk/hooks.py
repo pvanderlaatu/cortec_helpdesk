@@ -79,6 +79,15 @@ page_renderer = [
 ]
 
 # ---------------------------------------------------------------------------
+# Clases propias — WhatsApp Message sube sus adjuntos a Meta en vez de
+# enlazarlos, que es la única forma de enviar archivos privados
+# (ver overrides/whatsapp_message.py)
+# ---------------------------------------------------------------------------
+override_doctype_class = {
+    "WhatsApp Message": "cortec_helpdesk.overrides.whatsapp_message.CORTECWhatsAppMessage",
+}
+
+# ---------------------------------------------------------------------------
 # Document Events
 # ---------------------------------------------------------------------------
 doc_events = {

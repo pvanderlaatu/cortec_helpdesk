@@ -129,6 +129,18 @@ def get_promotions_email_group() -> str:
     return settings.get("promotions_email_group") or DEFAULT_PROMOTIONS_EMAIL_GROUP
 
 
+def is_whatsapp_media_upload_enabled() -> bool:
+    """
+    True si los adjuntos de WhatsApp deben subirse a Meta en vez de
+    enviarse como enlace (ver overrides/whatsapp_message.py).
+
+    Por defecto activado: sin esto, ningún adjunto del CRM se envía,
+    porque son archivos privados que Meta no puede descargar.
+    """
+    settings = frappe.get_cached_doc("CORTEC Helpdesk Settings")
+    return bool(settings.get("whatsapp_upload_media"))
+
+
 def get_telegram_settings():
     """
     Devuelve CORTEC Helpdesk Settings (cacheado) si los avisos por

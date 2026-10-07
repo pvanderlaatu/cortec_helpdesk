@@ -18,6 +18,8 @@
   "allow_professional_retention",
   "professional_retention_basis",
   "privacy_holidays",
+  "whatsapp_section",
+  "whatsapp_upload_media",
   "telegram_section",
   "telegram_enabled",
   "telegram_bot_token",
@@ -83,30 +85,30 @@
   },
   {
    "collapsible": 1,
+   "description": "Solicitudes de supresión y revocación de los titulares (CORTEC Suppression Request).",
    "fieldname": "privacy_section",
    "fieldtype": "Section Break",
-   "label": "Protección de datos (Ley 8968)",
-   "description": "Solicitudes de supresión y revocación de los titulares (CORTEC Suppression Request)."
+   "label": "Protección de datos (Ley 8968)"
   },
   {
+   "description": "Identidad y dirección del responsable (Ley 8968, art. 5.1.h). Encabeza las respuestas a los titulares.",
    "fieldname": "privacy_responsible",
    "fieldtype": "Small Text",
-   "label": "Responsable de la base de datos",
-   "description": "Identidad y dirección del responsable (Ley 8968, art. 5.1.h). Encabeza las respuestas a los titulares."
+   "label": "Responsable de la base de datos"
   },
   {
    "default": "24",
+   "description": "«Buscar datos» propone B2B si el titular está ligado a una empresa con tickets o negociaciones en este periodo.",
    "fieldname": "privacy_b2b_months",
    "fieldtype": "Int",
-   "label": "Meses de actividad para considerar B2B",
-   "description": "«Buscar datos» propone B2B si el titular está ligado a una empresa con tickets o negociaciones en este periodo."
+   "label": "Meses de actividad para considerar B2B"
   },
   {
    "default": "Cloudflare (Worker leads-intake)\nProveedor de la API de WhatsApp\nBitrix24 (mientras el portal siga activo)",
+   "description": "Terceros que tratan datos por cuenta del responsable. Deben ser informados de una revocación en 5 días hábiles (Decreto 37554-JP, art. 8). Uno por línea.",
    "fieldname": "privacy_data_processors",
    "fieldtype": "Small Text",
-   "label": "Encargados a notificar",
-   "description": "Terceros que tratan datos por cuenta del responsable. Deben ser informados de una revocación en 5 días hábiles (Decreto 37554-JP, art. 8). Uno por línea."
+   "label": "Encargados a notificar"
   },
   {
    "fieldname": "privacy_column",
@@ -114,23 +116,37 @@
   },
   {
    "default": "0",
+   "description": "Decreto 37554-JP, art. 3, último párrafo: el Reglamento no aplica a datos de personas físicas en su calidad de profesionales para fines propios de la profesión. Active esta opción solo cuando su asesor legal haya confirmado que cubre a los contactos de sus clientes empresa.",
    "fieldname": "allow_professional_retention",
    "fieldtype": "Check",
-   "label": "Permitir «Conservar — dato profesional»",
-   "description": "Decreto 37554-JP, art. 3, último párrafo: el Reglamento no aplica a datos de personas físicas en su calidad de profesionales para fines propios de la profesión. Active esta opción solo cuando su asesor legal haya confirmado que cubre a los contactos de sus clientes empresa."
+   "label": "Permitir «Conservar — dato profesional»"
   },
   {
    "depends_on": "allow_professional_retention",
+   "description": "Se copia en la solicitud al elegir esa resolución y aparece en la negativa escrita al titular (Decreto 37554-JP, art. 22).",
    "fieldname": "professional_retention_basis",
    "fieldtype": "Small Text",
-   "label": "Base legal por defecto para «Conservar»",
-   "description": "Se copia en la solicitud al elegir esa resolución y aparece en la negativa escrita al titular (Decreto 37554-JP, art. 22)."
+   "label": "Base legal por defecto para «Conservar»"
   },
   {
+   "description": "Una fecha por línea en formato AAAA-MM-DD (se admite texto después de la fecha). Se descuentan, junto con sábados y domingos, al calcular los plazos en días hábiles.",
    "fieldname": "privacy_holidays",
    "fieldtype": "Small Text",
-   "label": "Feriados",
-   "description": "Una fecha por línea en formato AAAA-MM-DD (se admite texto después de la fecha). Se descuentan, junto con sábados y domingos, al calcular los plazos en días hábiles."
+   "label": "Feriados"
+  },
+  {
+   "collapsible": 1,
+   "description": "frappe_whatsapp envía los adjuntos como un enlace que Meta debe descargar, y el CRM los sube como privados, así que fallan. Con esta opción el archivo se sube a Meta y el adjunto sigue siendo privado.",
+   "fieldname": "whatsapp_section",
+   "fieldtype": "Section Break",
+   "label": "Adjuntos de WhatsApp"
+  },
+  {
+   "default": "1",
+   "description": "Si la subida falla, el mensaje queda en Failed y el motivo en Error Log. Nunca se publica un archivo automáticamente.",
+   "fieldname": "whatsapp_upload_media",
+   "fieldtype": "Check",
+   "label": "Subir adjuntos a Meta en vez de enlazarlos"
   },
   {
    "collapsible": 1,
@@ -295,7 +311,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-29 00:00:00.000000",
+ "modified": "2026-10-07 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Cortec Helpdesk",
  "name": "CORTEC Helpdesk Settings",
