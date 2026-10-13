@@ -549,6 +549,30 @@ merge(phone="61591066", dry_run=False)    # un solo número
 Los grupos con algún Lead ya convertido a Deal se omiten y se reportan: detrás
 hay una negociación, así que se revisan a mano.
 
+### Conversaciones partidas entre Lead y Deal
+
+El emparejamiento por teléfono de Frappe CRM resuelve el contacto y lo lleva a
+**su** Deal, sin mirar si está cerrado. Con un cliente recurrente eso partía la
+conversación en dos: los mensajes entrantes iban al Lead nuevo (por
+`route_unclaimed_message`) y las respuestas del agente al Deal ganado meses
+atrás. En la pestaña del Lead parecía que las respuestas "desaparecían".
+
+Desde v1.0.17, `route_outgoing_message` corre en el `validate` de WhatsApp
+Message, después del de CRM: si la referencia que puso CRM está cerrada (`Won`
+o `Lost`) y existe un Lead o Deal **en seguimiento** para ese número, reapunta
+el mensaje al activo. Si no hay ninguno activo no toca nada, porque escribirle
+a un cliente desde un Deal cerrado es legítimo.
+
+Para reparar las conversaciones que ya quedaron partidas:
+
+```python
+from cortec_helpdesk.overrides.whatsapp import repair_outgoing_references
+
+repair_outgoing_references()                        # simulacro
+repair_outgoing_references(dry_run=False)           # aplica
+repair_outgoing_references("2098274", dry_run=False)  # un solo número
+```
+
 ### Ver errores recientes
 
 ```python

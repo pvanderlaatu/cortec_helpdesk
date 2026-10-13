@@ -32,6 +32,15 @@ route_unclaimed_message  — en after_insert de un WhatsApp Message
                             solo crea un CRM Lead nuevo cuando no hay
                             ninguno. Después notifica al agente asignado.
 
+route_outgoing_message   — en validate de un WhatsApp Message Outgoing:
+                            si CRM lo vinculó a un Lead/Deal cerrado y
+                            hay uno en seguimiento para ese número, lo
+                            reapunta al activo. Sin esto, la respuesta
+                            del agente se guarda en el Deal ganado de
+                            hace meses y la conversación queda partida:
+                            los entrantes en el Lead nuevo y los
+                            salientes en el Deal viejo.
+
 La asignación del Lead nuevo NO se reimplementa aquí: se deja que la
 misma estrategia de asignación que Frappe/CRM ya aplican a los Leads
 creados desde correo (p. ej. una Assignment Rule) actúe sobre el
@@ -129,6 +138,110 @@ def route_unclaimed_message(doc, method: str = None) -> None:
             title="CORTEC WhatsApp: error enrutando mensaje entrante",
             message=f"WhatsApp Message {doc.name}\nError: {str(e)}",
         )
+
+
+def route_outgoing_message(doc, method: str = None) -> None:
+    """
+    Hook ``validate`` en WhatsApp Message. Corre después de
+    crm.api.whatsapp.validate, que ya fijó reference_doctype/name
+    resolviendo el teléfono contra Contact → Lead/Deal.
+
+    Ese emparejamiento ignora si el Lead/Deal está cerrado, así que la
+    respuesta del agente a un cliente recurrente aterriza en el Deal
+    ganado de la negociación anterior. Aquí se reapunta al Lead/Deal en
+    seguimiento del mismo número, que es donde el agente está viendo la
+    conversación.
+
+    Si no hay ninguno activo no se toca nada: escribirle a un cliente
+    desde un Deal cerrado es legítimo y no hay a dónde moverlo.
+    """
+    try:
+        if doc.type != "Outgoing":
+            return
+        if frappe.flags.get("in_bitrix24_migration"):
+            return
+        if _has_active_reference(doc):
+            return
+
+        phone_number = (doc.get("to") or "").strip()
+        if not phone_number:
+            return
+
+        existing = _find_active_reference_by_phone(phone_number)
+        if not existing:
+            return
+
+        doctype, name = existing
+        if (doc.get("reference_doctype"), doc.get("reference_name")) == (doctype, name):
+            return
+
+        doc.reference_doctype = doctype
+        doc.reference_name = name
+
+        frappe.logger("cortec_helpdesk").info(
+            f"WhatsApp saliente a {phone_number} reapuntado a {doctype} {name}"
+        )
+    except Exception as e:
+        frappe.log_error(
+            title="CORTEC WhatsApp: error enrutando mensaje saliente",
+            message=f"WhatsApp Message para {doc.get('to')}\nError: {str(e)}",
+        )
+
+
+@frappe.whitelist()
+def repair_outgoing_references(phone: str | None = None, dry_run: bool = True) -> int:
+    """
+    Repara las conversaciones que ya quedaron partidas: mueve los
+    WhatsApp Message salientes que cuelgan de un Lead/Deal cerrado al
+    Lead/Deal en seguimiento del mismo número.
+
+    Desde consola:
+        from cortec_helpdesk.overrides.whatsapp import repair_outgoing_references
+        repair_outgoing_references()                       # simulacro
+        repair_outgoing_references(dry_run=False)          # aplica
+        repair_outgoing_references("2098274", dry_run=False)
+    """
+    frappe.only_for(["System Manager"])
+
+    filtros = {"type": "Outgoing", "reference_doctype": ["in", ("CRM Lead", "CRM Deal")]}
+    if phone:
+        filtros["to"] = ["like", f"%{phone}%"]
+
+    movidos = 0
+    for row in frappe.get_all(
+        "WhatsApp Message", filters=filtros,
+        fields=["name", "to", "reference_doctype", "reference_name"],
+        order_by="creation asc", limit_page_length=0,
+    ):
+        if _has_active_reference(frappe._dict(row)):
+            continue
+
+        existing = _find_active_reference_by_phone(row.get("to"))
+        if not existing:
+            continue
+
+        doctype, name = existing
+        if (row.reference_doctype, row.reference_name) == (doctype, name):
+            continue
+
+        print(
+            f"{row.name}: {row.reference_doctype} {row.reference_name} → {doctype} {name}"
+            + ("  [simulacro]" if dry_run else "")
+        )
+        movidos += 1
+
+        if not dry_run:
+            frappe.db.set_value(
+                "WhatsApp Message", row.name,
+                {"reference_doctype": doctype, "reference_name": name},
+                update_modified=False,
+            )
+
+    if not dry_run:
+        frappe.db.commit()
+
+    print(f"{movidos} mensaje(s)" + (" por mover" if dry_run else " movidos"))
+    return movidos
 
 
 # ---------------------------------------------------------------------------

@@ -541,6 +541,30 @@ merge(phone="61591066", dry_run=False)    # a single number
 Groups containing a Lead already converted to a Deal are skipped and reported:
 there is a deal behind them, so they are reviewed by hand.
 
+### Conversations split between Lead and Deal
+
+Frappe CRM's phone matching resolves the contact and points at **its** Deal,
+without checking whether it is closed. For a returning customer that split the
+conversation in two: incoming messages went to the new Lead (via
+`route_unclaimed_message`) while the agent's replies went to the Deal won months
+earlier. On the Lead's tab the replies appeared to "vanish".
+
+Since v1.0.17, `route_outgoing_message` runs on WhatsApp Message's `validate`,
+after CRM's: if the reference CRM set is closed (`Won` or `Lost`) and there is a
+Lead or Deal **in progress** for that number, the message is re-pointed at the
+active one. With nothing active it changes nothing, since writing to a customer
+from a closed Deal is legitimate.
+
+To repair conversations that are already split:
+
+```python
+from cortec_helpdesk.overrides.whatsapp import repair_outgoing_references
+
+repair_outgoing_references()                          # dry run
+repair_outgoing_references(dry_run=False)             # apply
+repair_outgoing_references("2098274", dry_run=False)  # a single number
+```
+
 ### Recent errors
 
 ```python

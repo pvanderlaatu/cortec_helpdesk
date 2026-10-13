@@ -102,6 +102,9 @@ doc_events = {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_queue_by_doctype",
     },
     "WhatsApp Message": {
+        # Los salientes: corre después del validate de CRM, que resuelve
+        # la referencia por teléfono sin mirar si está cerrada.
+        "validate": "cortec_helpdesk.overrides.whatsapp.route_outgoing_message",
         # El orden importa: los avisos deben ver el Lead que
         # route_unclaimed_message crea para mensajes sin vínculo abierto.
         "after_insert": [
