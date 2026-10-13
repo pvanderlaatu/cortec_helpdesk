@@ -2,3 +2,4 @@
 
 [post_model_sync]
 cortec_helpdesk.patches.migrate_consent_fields
+cortec_helpdesk.patches.enable_whatsapp_media_upload

@@ -163,8 +163,10 @@ This app fixes it with a WhatsApp Message subclass
   `whatsapp.message.startsWith('/files/')` with no null guard: a single
   message without text blanks out **the whole conversation**.
 
-Turn it off in `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp** (WhatsApp
-attachments) to fall back to stock `frappe_whatsapp` behaviour.
+Toggle it in `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp** (WhatsApp
+attachments). It ships enabled: the `enable_whatsapp_media_upload` patch turns it
+on at migrate time if it was never set. **With the box unchecked, attachments fail
+exactly as before v1.0.16**, with no clue beyond the message's `failed` status.
 
 **If the upload fails**, the message stays `Failed` and the reason goes to the
 Error Log ("CORTEC WhatsApp: …"). No file is ever made public automatically.

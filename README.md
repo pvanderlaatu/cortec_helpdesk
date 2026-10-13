@@ -161,7 +161,10 @@ Esta app lo corrige con una subclase de WhatsApp Message
   `whatsapp.message.startsWith('/files/')` sin comprobar nulos: un solo
   mensaje sin texto deja **toda la conversación en blanco**.
 
-Se desactiva en `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp**.
+Se activa y desactiva en `CORTEC Helpdesk Settings` → **Adjuntos de WhatsApp**.
+Viene activado: el patch `enable_whatsapp_media_upload` lo enciende al migrar si
+nunca se tocó. **Si la casilla queda apagada, los adjuntos fallan igual que antes
+de la v1.0.16**, sin más señal que el `failed` del mensaje.
 Apagado, se vuelve al comportamiento original de `frappe_whatsapp`.
 
 **Si la subida falla**, el mensaje queda en `Failed` y el motivo en Error Log
