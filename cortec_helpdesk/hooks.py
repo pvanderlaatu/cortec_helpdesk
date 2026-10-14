@@ -46,6 +46,8 @@ fixtures = [
                     "CRM Lead-custom_promociones_origen",
                     "Contact-custom_acepta_promociones",
                     "Contact-custom_promociones_origen",
+                    "User-custom_firma_crm",
+                    "User-custom_firma_helpdesk",
                 ],
             ]
         ],
@@ -77,6 +79,17 @@ has_permission = {
 page_renderer = [
     "cortec_helpdesk.overrides.browser_alerts.AlertsTemplatePage",
 ]
+
+# ---------------------------------------------------------------------------
+# Firma de correo distinta en CRM y en Helpdesk. Ambas apps leen
+# User.email_signature; estas dos funciones envuelven a las originales y
+# usan la firma propia de cada módulo, con la general como respaldo
+# (ver overrides/signature.py)
+# ---------------------------------------------------------------------------
+override_whitelisted_methods = {
+    "crm.api.get_user_signature": "cortec_helpdesk.overrides.signature.get_crm_signature",
+    "helpdesk.api.auth.get_current_user_email_info": "cortec_helpdesk.overrides.signature.get_helpdesk_email_info",
+}
 
 # ---------------------------------------------------------------------------
 # Clases propias — WhatsApp Message sube sus adjuntos a Meta en vez de

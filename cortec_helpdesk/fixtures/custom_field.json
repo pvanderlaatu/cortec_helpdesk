@@ -106,5 +106,29 @@
   "description": "Solo lectura. Resumen del último evento del acuerdo «promociones»: acción, canal, fecha, IP, URL y registro. La evidencia completa está en CORTEC Consent Record.",
   "translatable": 0,
   "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "User-custom_firma_crm",
+  "dt": "User",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_firma_crm",
+  "fieldtype": "Text Editor",
+  "label": "Firma en CRM",
+  "description": "Se usa al escribir correos desde Frappe CRM. Si se deja vacía, se usa la firma general.",
+  "insert_after": "email_signature",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "User-custom_firma_helpdesk",
+  "dt": "User",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_firma_helpdesk",
+  "fieldtype": "Text Editor",
+  "label": "Firma en Helpdesk",
+  "description": "Se usa al responder tickets en Frappe Helpdesk. Si se deja vacía, se usa la firma general.",
+  "insert_after": "custom_firma_crm",
+  "translatable": 0
  }
 ]

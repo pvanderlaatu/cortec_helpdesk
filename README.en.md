@@ -61,6 +61,7 @@ cortec_helpdesk/
         ├── telegram.py          # Telegram channel
         ├── raven.py             # Raven channel
         ├── whatsapp_message.py  # attachments: upload to Meta
+        ├── signature.py         # different signature in CRM and Helpdesk
         ├── browser_alerts.py    # audible alerts in /crm and /helpdesk
         ├── consent.py           # consent fields on Lead/Contact
         └── email_group_member.py  # marketing list subscribe/unsubscribe
@@ -420,6 +421,38 @@ backups.
   mailboxes, alerts already sent through Telegram or Raven, Error Log and earlier
   exports.
 - Internal Frappe users (agents) are handled manually.
+
+### 12. A different email signature in CRM and Helpdesk
+
+Frappe CRM and Frappe Helpdesk read the **same** signature, `User.email_signature`,
+so by default an agent has just one. This app allows a signature of their own for
+each module, which each agent edits on their user (`/app/user/<email>`, *Email*
+section):
+
+| Field | Used when |
+| --- | --- |
+| **Firma en CRM** (`custom_firma_crm`) | writing an email from a Lead or Deal |
+| **Firma en Helpdesk** (`custom_firma_helpdesk`) | replying to a ticket |
+| Email Signature (`email_signature`) | the general one: fallback for both |
+
+If the specific field is empty, nothing changes and the general signature is used:
+anyone who fills in nothing sees no difference.
+
+How it works: `overrides/signature.py` wraps `crm.api.get_user_signature` and
+`helpdesk.api.auth.get_current_user_email_info` through
+`override_whitelisted_methods`. The originals still run (with their permissions and
+fallbacks); only the signature is replaced. No third-party app is modified.
+
+**Caveats**
+
+- The CRM profile screen (*Settings → Profile → Signature*) edits the **general**
+  signature. If the agent already filled in *Firma en CRM*, changing the general
+  one there has no effect in CRM.
+- Frappe also appends the **email account's** signature on its own when *Add
+  Signature* is checked. If the signature shows up twice, uncheck it on the account
+  (`/app/email-account`).
+- Both frontends cache the signature in the browser: after changing it, reload the
+  page (Ctrl+F5).
 
 ## Ticket flow
 

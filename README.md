@@ -58,6 +58,7 @@ cortec_helpdesk/
         ├── telegram.py          # Canal Telegram
         ├── raven.py             # Canal Raven
         ├── whatsapp_message.py  # Adjuntos: subida a Meta
+        ├── signature.py         # Firma distinta en CRM y Helpdesk
         ├── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
         ├── consent.py           # Campos de consentimiento del Lead/Contact
         └── email_group_member.py  # Altas y bajas de la lista promocional
@@ -429,6 +430,39 @@ seguridad de `site_config.json`.
   de seguridad, buzones IMAP, avisos ya enviados por Telegram o Raven,
   Error Log y exportaciones previas.
 - Usuarios internos de Frappe (agentes): se tratan a mano.
+
+### 12. Firma de correo distinta en CRM y en Helpdesk
+
+Frappe CRM y Frappe Helpdesk leen la **misma** firma, `User.email_signature`, así
+que por defecto un agente tiene una sola. Esta app permite una firma propia para
+cada módulo, que cada agente edita en su usuario (`/app/user/<correo>`, sección
+*Email*):
+
+| Campo | Se usa al |
+| --- | --- |
+| **Firma en CRM** (`custom_firma_crm`) | escribir un correo desde un Lead o Deal |
+| **Firma en Helpdesk** (`custom_firma_helpdesk`) | responder un ticket |
+| Firma de correo (`email_signature`) | la general: respaldo de las dos |
+
+Si el campo específico está vacío, todo sigue como antes y se usa la firma
+general: quien no llene nada no nota ningún cambio.
+
+Cómo funciona: `overrides/signature.py` envuelve a `crm.api.get_user_signature` y
+a `helpdesk.api.auth.get_current_user_email_info` mediante
+`override_whitelisted_methods`. Las originales siguen ejecutándose (con sus
+permisos y respaldos); solo se sustituye la firma. No se modifica ninguna app
+ajena.
+
+**Advertencias**
+
+- La pantalla de perfil del CRM (*Settings → Profile → Signature*) edita la firma
+  **general**. Si el agente ya llenó *Firma en CRM*, cambiar la general ahí no
+  tendrá efecto en CRM.
+- Frappe agrega por su cuenta la firma de la **cuenta de correo** si tiene marcado
+  *Add Signature*. Si la firma sale dos veces, desmárquelo en la cuenta
+  (`/app/email-account`).
+- Los frontends guardan la firma en la caché del navegador: tras cambiarla, hay
+  que recargar la página (Ctrl+F5).
 
 ## Flujo de un ticket
 
