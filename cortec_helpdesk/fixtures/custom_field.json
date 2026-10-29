@@ -130,5 +130,29 @@
   "description": "Se usa al responder tickets en Frappe Helpdesk. Si se deja vacía, se usa la firma general.",
   "insert_after": "custom_firma_crm",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "User-custom_sonido_whatsapp",
+  "dt": "User",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_sonido_whatsapp",
+  "fieldtype": "Attach",
+  "label": "Sonido de alerta de WhatsApp",
+  "description": "Archivo de audio (mp3, wav u ogg, máximo 3 MB) que suena en /crm y /helpdesk al llegar un WhatsApp. Si se deja vacío, suena el tono por defecto.",
+  "insert_after": "custom_firma_helpdesk",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "User-custom_sonido_correo",
+  "dt": "User",
+  "module": "Cortec Helpdesk",
+  "fieldname": "custom_sonido_correo",
+  "fieldtype": "Attach",
+  "label": "Sonido de alerta de correo",
+  "description": "Archivo de audio (mp3, wav u ogg, máximo 3 MB) que suena en /crm y /helpdesk al llegar un correo. Si se deja vacío, suena el tono por defecto.",
+  "insert_after": "custom_sonido_whatsapp",
+  "translatable": 0
  }
 ]

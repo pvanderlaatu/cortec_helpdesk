@@ -43,6 +43,7 @@ from cortec_helpdesk.cortec_helpdesk.doctype.cortec_helpdesk_settings.cortec_hel
     MIN_BROWSER_POLL_SECONDS,
     get_browser_alert_settings,
 )
+from cortec_helpdesk.overrides.alert_sound import get_user_sounds
 from cortec_helpdesk.overrides.alert_utils import (
     REFERENCE_DOCTYPES,
     build_link,
@@ -118,15 +119,22 @@ def get_new_alerts(since: str | None = None) -> dict:
 
     Sin ``since`` (primera consulta) no devuelve alertas: solo la hora
     actual, para no hacer sonar mensajes viejos.
+
+    ``sounds`` trae el archivo de audio propio del usuario para cada tipo
+    de alerta (ver alert_sound.py); un valor None significa "tono por
+    defecto".
     """
     user = frappe.session.user
     now = now_datetime()
-    result = {"enabled": False, "user": user, "now": str(now), "alerts": []}
+    result = {"enabled": False, "user": user, "now": str(now), "alerts": [], "sounds": {}}
 
     settings = get_browser_alert_settings()
     if not settings or user == "Guest":
         return result
     result["enabled"] = True
+    # Se envía en cada consulta (no solo en la primera) para que un cambio
+    # de sonido se note sin recargar la página.
+    result["sounds"] = get_user_sounds(user)
 
     since_dt = _parse_since(since, now)
     if not since_dt:
@@ -162,8 +170,8 @@ def _parse_since(since: str | None, now):
 def _whatsapp_alerts(user: str, since_dt, now) -> list[dict]:
     """
     CRM Notification de tipo WhatsApp, no leídas, para el usuario. Las
-    crea crm.api.whatsapp.notify_agent (también desde
-    route_unclaimed_message) solo para los agentes asignados.
+    crea crm.api.whatsapp.notify_agent, desde su on_update, solo para
+    los agentes asignados.
     """
     notifications = frappe.get_all(
         "CRM Notification",

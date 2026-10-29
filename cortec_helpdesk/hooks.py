@@ -48,6 +48,8 @@ fixtures = [
                     "Contact-custom_promociones_origen",
                     "User-custom_firma_crm",
                     "User-custom_firma_helpdesk",
+                    "User-custom_sonido_whatsapp",
+                    "User-custom_sonido_correo",
                 ],
             ]
         ],
@@ -130,6 +132,9 @@ doc_events = {
     },
     "Contact": {
         "validate": "cortec_helpdesk.overrides.consent.sync_consent_fields",
+    },
+    "User": {
+        "validate": "cortec_helpdesk.overrides.alert_sound.validate_alert_sounds",
     },
     "Email Group Member": {
         "validate": "cortec_helpdesk.overrides.email_group_member.require_registered_consent",

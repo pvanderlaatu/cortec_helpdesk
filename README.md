@@ -60,6 +60,7 @@ cortec_helpdesk/
         ├── whatsapp_message.py  # Adjuntos: subida a Meta
         ├── signature.py         # Firma distinta en CRM y Helpdesk
         ├── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
+        ├── alert_sound.py       # Sonido de alerta propio de cada agente
         ├── consent.py           # Campos de consentimiento del Lead/Contact
         └── email_group_member.py  # Altas y bajas de la lista promocional
 ```
@@ -247,6 +248,22 @@ Telegram en el móvil).
 3. Cada agente recarga /crm o /helpdesk y pulsa una vez el botón **🔕**
    (esquina inferior derecha) → pasa a 🔔 y el navegador pide permiso de
    notificaciones. El mismo botón silencia o reactiva el sonido.
+
+**Sonido propio de cada agente**
+
+Cada agente puede cambiar el tono por un archivo suyo, uno para WhatsApp y
+otro para correo. En su ficha de usuario (`/app/user/<correo>`, también la
+puede abrir desde su perfil) están los campos **Sonido de alerta de
+WhatsApp** y **Sonido de alerta de correo**: se sube el archivo con
+*Attach*. Si un campo queda vacío, suena el tono por defecto.
+
+- Formatos: mp3, wav u ogg, de hasta 3 MB. Al guardar, el usuario no
+  acepta otro tipo ni un archivo más pesado.
+- Suena como máximo 10 segundos, aunque el archivo sea más largo.
+- Un cambio se nota en la siguiente consulta (segundos), sin recargar la
+  página. Si el archivo no se puede reproducir, suena el tono por defecto.
+- Hay que dar a los agentes permiso para editar su propio usuario; si no
+  ven la sección, revisar los permisos del DocType User.
 
 **Limitaciones**
 

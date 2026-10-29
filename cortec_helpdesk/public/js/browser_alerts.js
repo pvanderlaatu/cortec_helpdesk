@@ -3,8 +3,9 @@
 //
 // Alerta audible en /crm y /helpdesk (cortec_helpdesk.overrides.browser_alerts).
 // Consulta periódicamente get_new_alerts y, si hay WhatsApp o correos nuevos,
-// reproduce un tono (Web Audio, sin archivos) y muestra una notificación del
-// navegador si el agente dio permiso.
+// reproduce el sonido propio del agente (User.custom_sonido_whatsapp /
+// custom_sonido_correo) o, si no tiene, un tono (Web Audio, sin archivos), y
+// muestra una notificación del navegador si el agente dio permiso.
 //
 // Los navegadores no permiten sonido hasta que el usuario interactúa con la
 // página: cualquier clic lo desbloquea, y el botón flotante 🔕/🔔 además pide
@@ -31,7 +32,10 @@
 		email: [660, 880],
 	};
 
+	const MAX_CUSTOM_SOUND_SECONDS = 10;
+
 	let audioCtx = null;
+	const customSounds = {}; // kind -> { url, buffer }
 	let unlocked = false;
 	let stopped = false;
 	let timer = null;
@@ -66,17 +70,74 @@
 	// Sonido
 	// -----------------------------------------------------------------------
 
-	function unlockAudio() {
+	function getContext() {
 		const AudioContext = window.AudioContext || window.webkitAudioContext;
-		if (!AudioContext) return;
+		if (!AudioContext) return null;
 		if (!audioCtx) audioCtx = new AudioContext();
+		return audioCtx;
+	}
+
+	function unlockAudio() {
+		if (!getContext()) return;
 		if (audioCtx.state === "suspended") audioCtx.resume();
 		unlocked = true;
 		renderButton();
 	}
 
+	// Sonido propio del agente (User.custom_sonido_*): se descarga y decodifica
+	// una vez por archivo. Mientras no esté listo, o si falla, suena el tono.
+	function loadCustomSound(kind, url) {
+		const entry = { url, buffer: null };
+		customSounds[kind] = entry;
+
+		return (async () => {
+			try {
+				const context = getContext();
+				if (!context) return;
+				const response = await fetch(url, { credentials: "same-origin" });
+				if (!response.ok) return;
+				const buffer = await context.decodeAudioData(await response.arrayBuffer());
+				// El agente pudo cambiar de archivo mientras se descargaba.
+				if (customSounds[kind] === entry) entry.buffer = buffer;
+			} catch (e) {
+				/* archivo ilegible: se queda el tono por defecto */
+			}
+		})();
+	}
+
+	function syncSounds(sounds) {
+		const loading = [];
+		Object.keys(TONES).forEach((kind) => {
+			const url = (sounds && sounds[kind]) || null;
+			const current = customSounds[kind];
+			if (!url) {
+				delete customSounds[kind];
+			} else if (!current || current.url !== url) {
+				loading.push(loadCustomSound(kind, url));
+			}
+		});
+		return Promise.all(loading);
+	}
+
+	function playCustomSound(buffer) {
+		const source = audioCtx.createBufferSource();
+		source.buffer = buffer;
+		source.connect(audioCtx.destination);
+		const start = audioCtx.currentTime + 0.02;
+		source.start(start);
+		// Un archivo largo no debe sonar sin parar: tope de 10 segundos.
+		source.stop(start + MAX_CUSTOM_SOUND_SECONDS);
+	}
+
 	function playTone(kind) {
 		if (!audioCtx || !unlocked || isMuted()) return;
+
+		const custom = customSounds[kind];
+		if (custom && custom.buffer) {
+			playCustomSound(custom.buffer);
+			return;
+		}
+
 		const notes = TONES[kind] || TONES.whatsapp;
 		const start = audioCtx.currentTime + 0.02;
 
@@ -239,6 +300,9 @@
 			stop();
 			return;
 		}
+
+		// Antes de sonar, tener listo el sonido propio del agente.
+		await syncSounds(data.sounds);
 
 		// Otro usuario en este navegador: empezar de cero sin avisos viejos.
 		if (load(KEY_USER) !== data.user) {

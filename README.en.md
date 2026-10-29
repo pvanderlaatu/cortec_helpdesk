@@ -63,6 +63,7 @@ cortec_helpdesk/
         ├── whatsapp_message.py  # attachments: upload to Meta
         ├── signature.py         # different signature in CRM and Helpdesk
         ├── browser_alerts.py    # audible alerts in /crm and /helpdesk
+        ├── alert_sound.py       # each agent's own alert sound
         ├── consent.py           # consent fields on Lead/Contact
         └── email_group_member.py  # marketing list subscribe/unsubscribe
 ```
@@ -245,6 +246,21 @@ they can be used together (browser on the desktop, Telegram on the phone).
 3. Each agent reloads /crm or /helpdesk and clicks the **🔕** button once
    (bottom-right corner) → it turns into 🔔 and the browser asks for notification
    permission. The same button mutes and unmutes the sound.
+
+**Each agent's own sound**
+
+Each agent can replace the default tone with their own file, one for WhatsApp
+and one for email. On their user record (`/app/user/<email>`) there are the
+**Sonido de alerta de WhatsApp** and **Sonido de alerta de correo** fields:
+upload the file with *Attach*. An empty field keeps the default tone.
+
+- Formats: mp3, wav or ogg, up to 3 MB. When saving, the user rejects any other
+  type or a larger file.
+- It plays for at most 10 seconds, even if the file is longer.
+- A change takes effect on the next poll (seconds), without reloading the
+  page. If the file cannot be played, the default tone is used.
+- Agents need permission to edit their own user; if they don't see the
+  section, check the permissions of the User DocType.
 
 **Limitations**
 

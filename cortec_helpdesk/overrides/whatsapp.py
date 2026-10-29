@@ -129,9 +129,10 @@ def route_unclaimed_message(doc, method: str = None) -> None:
                 f"({phone_number})"
             )
 
-        from crm.api.whatsapp import notify_agent
-
-        notify_agent(doc)
+        # No se llama a notify_agent aquí: CRM lo registra en el on_update
+        # de WhatsApp Message, que corre después de este after_insert y ya
+        # ve la referencia puesta en memoria por _link_message_to. Llamarlo
+        # también aquí avisaba dos veces por mensaje.
 
     except Exception as e:
         frappe.log_error(
@@ -395,8 +396,8 @@ def _link_message_to(doc, doctype: str, name: str) -> None:
 
     Usa frappe.db.set_value (no doc.save()) para no re-disparar
     validate/on_update de WhatsApp Message de forma anidada dentro de su
-    propio after_insert. Por eso route_unclaimed_message llama a
-    notify_agent manualmente después de esto.
+    propio after_insert. El notify_agent de CRM corre después, en su
+    on_update, y toma la referencia del objeto en memoria.
     """
     frappe.db.set_value(
         "WhatsApp Message", doc.name,
@@ -406,7 +407,7 @@ def _link_message_to(doc, doctype: str, name: str) -> None:
         },
         update_modified=False,
     )
-    # Refleja el cambio también en el objeto en memoria, ya que
-    # notify_agent(doc) se llama sobre este mismo doc a continuación.
+    # Refleja el cambio también en el objeto en memoria: el on_update de
+    # CRM (notify_agent) trabaja sobre este mismo doc.
     doc.reference_doctype = doctype
     doc.reference_name = name
