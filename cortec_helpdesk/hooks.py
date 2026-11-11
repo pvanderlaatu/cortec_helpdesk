@@ -107,7 +107,12 @@ override_doctype_class = {
 # ---------------------------------------------------------------------------
 doc_events = {
     "HD Ticket": {
-        "after_insert": "cortec_helpdesk.overrides.hd_ticket.auto_assign_ticket",
+        # El orden importa: la alerta al canal debe ver ya al agente asignado.
+        "after_insert": [
+            "cortec_helpdesk.overrides.hd_ticket.auto_assign_ticket",
+            "cortec_helpdesk.overrides.raven_channel.on_ticket_insert",
+        ],
+        "on_update": "cortec_helpdesk.overrides.raven_channel.on_ticket_update",
     },
     "Communication": {
         "before_insert": "cortec_helpdesk.overrides.communication.route_email_by_doctype",
@@ -157,6 +162,12 @@ doctype_js = {
 # Tareas programadas
 # ---------------------------------------------------------------------------
 scheduler_events = {
+    # SLA vencidos de Helpdesk → canal de Raven (overrides/raven_channel.py).
+    "cron": {
+        "*/5 * * * *": [
+            "cortec_helpdesk.overrides.raven_channel.check_sla_breaches",
+        ],
+    },
     # Bajas de la lista promocional que no pasaron por el hook de
     # Email Group Member (ver consent_log.reconcile_unsubscribes).
     "daily": [

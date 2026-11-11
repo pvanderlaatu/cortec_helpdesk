@@ -60,6 +60,7 @@ cortec_helpdesk/
         ├── alerts.py            # dispatcher: resolves the event and fans out
         ├── telegram.py          # Telegram channel
         ├── raven.py             # Raven channel
+        ├── raven_channel.py     # Ticket alerts to a Raven channel
         ├── whatsapp_message.py  # attachments: upload to Meta
         ├── signature.py         # different signature in CRM and Helpdesk
         ├── browser_alerts.py    # audible alerts in /crm and /helpdesk
@@ -295,6 +296,21 @@ Chat ID to link.
 notifications (*Push Notification Settings*), which on self-hosted sites depend on
 a relay. If those are unavailable, Raven covers the desktop and **Telegram
 remains the mobile channel**.
+
+**Helpdesk alerts to the team channel**
+
+Besides direct messages, the bot can post to a Raven channel (e.g.
+`raven-alertas-cortec`) for the whole team:
+
+- 🎫 new ticket,
+- 🚨 urgent ticket (created with priority *Urgent* or changed to it),
+- ⏰ SLA breached (`agreement_status = Failed`, open tickets; a cron every
+  5 minutes, once per ticket).
+
+Under **Alertas de Helpdesk al canal** enter the channel ID (the one in
+the `/raven/.../ID` URL) and tick the events you want. If the channel is
+private, the bot must be a member. A Raven failure only lands in the
+Error Log: it never breaks saving the ticket.
 
 ### Comparing the three channels
 

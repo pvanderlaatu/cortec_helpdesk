@@ -57,6 +57,7 @@ cortec_helpdesk/
         ├── alerts.py            # Despachador: resuelve el evento y reparte
         ├── telegram.py          # Canal Telegram
         ├── raven.py             # Canal Raven
+        ├── raven_channel.py     # Alertas de tickets al canal de Raven
         ├── whatsapp_message.py  # Adjuntos: subida a Meta
         ├── signature.py         # Firma distinta en CRM y Helpdesk
         ├── browser_alerts.py    # Alertas audibles en /crm y /helpdesk
@@ -300,6 +301,21 @@ hacen falta las notificaciones push de Frappe (*Push Notification
 Settings*), que en sitios autoalojados dependen de un relay. Si no están
 disponibles, Raven sirve para el escritorio y **Telegram sigue siendo el
 canal del móvil**.
+
+**Alertas de Helpdesk al canal del equipo**
+
+Además de los mensajes directos, el bot puede publicar en un canal de
+Raven (p. ej. `raven-alertas-cortec`) para todo el equipo:
+
+- 🎫 ticket nuevo,
+- 🚨 ticket urgente (creado con prioridad *Urgent* o cambiado a ella),
+- ⏰ SLA vencido (`agreement_status = Failed`, tickets abiertos; un cron
+  cada 5 minutos, una sola vez por ticket).
+
+En **Alertas de Helpdesk al canal** se escribe el ID del canal (el de la
+URL `/raven/.../ID`) y se activan los eventos deseados. Si el canal es
+privado, el bot debe ser miembro. Un fallo de Raven solo queda en el
+Error Log: nunca rompe el guardado del ticket.
 
 ### Comparación de los tres canales
 

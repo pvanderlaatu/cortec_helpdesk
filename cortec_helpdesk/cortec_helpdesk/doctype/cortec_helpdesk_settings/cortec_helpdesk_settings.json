@@ -37,6 +37,12 @@
   "raven_notify_whatsapp",
   "raven_notify_email",
   "raven_include_message",
+  "raven_channel_section",
+  "raven_alert_channel",
+  "raven_alert_column",
+  "raven_alert_new_ticket",
+  "raven_alert_urgent",
+  "raven_alert_sla",
   "browser_alerts_section",
   "browser_alerts_enabled",
   "browser_alert_poll_seconds",
@@ -266,6 +272,46 @@
    "fieldname": "raven_include_message",
    "fieldtype": "Check",
    "label": "Incluir el contenido del mensaje"
+  },
+  {
+   "depends_on": "raven_enabled",
+   "fieldname": "raven_channel_section",
+   "fieldtype": "Section Break",
+   "label": "Alertas de Helpdesk al canal"
+  },
+  {
+   "depends_on": "raven_enabled",
+   "description": "Alertas de Helpdesk para todo el equipo en un canal de Raven (por ejemplo raven-alertas-cortec). Es el ID del canal, el de la URL /raven/.../ID. El bot debe ser miembro si el canal es privado. Vacío = sin alertas al canal.",
+   "fieldname": "raven_alert_channel",
+   "fieldtype": "Data",
+   "label": "Canal de alertas de Helpdesk"
+  },
+  {
+   "fieldname": "raven_alert_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.raven_enabled && doc.raven_alert_channel",
+   "fieldname": "raven_alert_new_ticket",
+   "fieldtype": "Check",
+   "label": "Avisar tickets nuevos"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.raven_enabled && doc.raven_alert_channel",
+   "description": "Ticket creado con prioridad Urgent o cambiado a ella.",
+   "fieldname": "raven_alert_urgent",
+   "fieldtype": "Check",
+   "label": "Avisar tickets urgentes"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.raven_enabled && doc.raven_alert_channel",
+   "description": "Tickets abiertos cuyo SLA pasó a Failed (se revisa cada 5 minutos).",
+   "fieldname": "raven_alert_sla",
+   "fieldtype": "Check",
+   "label": "Avisar SLA vencido"
   },
   {
    "collapsible": 1,
