@@ -30,6 +30,9 @@ AGPL-3.0-or-later — Ver archivo [LICENSE](LICENSE).
 8. **Solicitudes de supresión y revocación** — expediente con los plazos
    del Decreto 37554-JP, búsqueda de todo lo que Frappe guarda del
    titular y anonimización irreversible.
+9. **Disponibilidad por WhatsApp** — botón en el CRM Deal que le avisa al
+   contacto, con una plantilla aprobada, que sus productos ya están en
+   inventario (artículos, precio unitario y total con IVA).
 
 ## Estructura
 
@@ -40,10 +43,13 @@ cortec_helpdesk/
 ├── requirements.txt
 ├── README.md                   # español
 ├── README.en.md                # inglés
+├── crm_form_scripts/           # CRM Form Scripts para pegar en Desk
 └── cortec_helpdesk/
     ├── __init__.py
     ├── hooks.py
-    ├── api.py                   # Endpoints del Worker leads-intake
+    ├── api/
+    │   ├── __init__.py          # Endpoints del Worker leads-intake
+    │   └── whatsapp_disponibilidad.py  # Botón «Enviar disponibilidad» del Deal
     ├── consent_log.py           # Registro de consentimientos
     ├── privacy.py               # Solicitudes de supresión (Ley 8968)
     ├── patches/                 # Migración de los consentimientos antiguos
@@ -496,6 +502,61 @@ ajena.
   (`/app/email-account`).
 - Los frontends guardan la firma en la caché del navegador: tras cambiarla, hay
   que recargar la página (Ctrl+F5).
+
+### 13. Disponibilidad de productos por WhatsApp
+
+Botón **Enviar disponibilidad (WhatsApp)** en el CRM Deal: envía al contacto
+principal del Deal (o al primero, si ninguno está marcado) la plantilla
+`disponibilidad_productos_cliente` con:
+
+| Variable | Contenido | Ejemplo |
+| --- | --- | --- |
+| `{{1}}` | First Name del contacto | `Carlos` |
+| `{{2}}` | productos del Deal, separados por `; ` | `2 x HP toner negro #202A CF500A (CRC 48 508.81 c/u)` |
+| `{{3}}` | total (suma de los Net Amount, IVA incluido) | `CRC 97 017.62` |
+
+Antes de enviar muestra una vista previa con destinatario, artículos y total.
+El mensaje queda en la conversación de WhatsApp del Deal.
+
+**1. Plantilla** — en `/app/whatsapp-templates/new` (Category *Utility*,
+Language *Spanish*), nombre `disponibilidad_productos_cliente`, cuerpo:
+
+```
+Hola {{1}}, te saludamos de Corporación de Tecnología CORTEC SRL (tecnocr.net). Te informamos que ya tenemos disponible en inventario lo que nos consultaste:
+{{2}}
+Total: {{3}} IVA incluido.
+
+Si deseas que te lo reservemos o coordinar el envío, respóndenos por este medio para ayudarte con tu pedido.
+```
+
+- **Sample Values**: `Carlos, 2 x HP toner negro #202A CF500A (CRC 48 508.81 c/u), CRC 97 017.62`
+  (frappe_whatsapp los separa por comas: por eso los montos usan espacio como
+  separador de miles y no llevan comas).
+- **Field Names**: vacío. Los valores los manda el botón en `body_param`.
+- El botón solo envía cuando la plantilla está en estado **APPROVED** (Meta).
+
+**2. Form Script** — en `/app/crm-form-script/new`: DocType *CRM Deal*, View
+*Form*, *Enabled*, y como Script el contenido de
+`crm_form_scripts/crm_deal_enviar_disponibilidad.js`. Es un registro nuevo; los
+Form Scripts estándar del CRM no se tocan.
+
+**3. Probar sin enviar** — en `bench --site <sitio> console`:
+
+```python
+from cortec_helpdesk.api.whatsapp_disponibilidad import vista_previa
+vista_previa("CRM-DEAL-2026-00189")
+```
+
+Devuelve `nombre`, `telefono`, `articulos` y `total`; no crea ningún mensaje.
+
+**Errores que muestra** (en español): Deal sin contactos, contacto sin First
+Name o sin móvil, Deal sin productos, lista de productos de más de 900
+caracteres, plantilla inexistente o no aprobada, o falta de permiso de
+escritura sobre el Deal.
+
+**Advertencia**: la referencia del mensaje (`CRM Deal`) la pueden reapuntar los
+hooks `validate` del CRM y de esta app (`route_outgoing_message`) si el número
+tiene otro Lead/Deal en seguimiento; el envío no se afecta.
 
 ## Flujo de un ticket
 

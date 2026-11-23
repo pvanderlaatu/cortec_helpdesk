@@ -46,7 +46,9 @@ cortec_helpdesk/
 └── cortec_helpdesk/
     ├── __init__.py
     ├── hooks.py
-    ├── api.py                   # leads-intake Worker endpoints
+    ├── api/
+    │   ├── __init__.py          # leads-intake Worker endpoints
+    │   └── whatsapp_disponibilidad.py  # Deal "send availability" button
     ├── consent_log.py           # consent log
     ├── privacy.py               # erasure requests (Law 8968)
     ├── patches/                 # migration of the legacy consent fields
@@ -485,6 +487,22 @@ fallbacks); only the signature is replaced. No third-party app is modified.
   (`/app/email-account`).
 - Both frontends cache the signature in the browser: after changing it, reload the
   page (Ctrl+F5).
+
+### 13. Product availability over WhatsApp
+
+**Enviar disponibilidad (WhatsApp)** button on the CRM Deal: sends the Deal's
+primary contact (or the first one) the approved template
+`disponibilidad_productos_cliente` with `{{1}}` the contact's First Name, `{{2}}`
+the Deal products (`2 x HP toner negro #202A CF500A (CRC 48 508.81 c/u)`, joined
+by `; `) and `{{3}}` the VAT-inclusive total (`CRC 97 017.62`). A preview with
+recipient, items and total is shown first.
+
+Setup: create the template in WhatsApp Templates (Utility, Spanish) with
+Sample Values `Carlos, 2 x HP toner negro #202A CF500A (CRC 48 508.81 c/u), CRC 97 017.62`
+and an empty Field Names; then create a new CRM Form Script (CRM Deal, Form,
+Enabled) with the contents of `crm_form_scripts/crm_deal_enviar_disponibilidad.js`.
+Dry run: `from cortec_helpdesk.api.whatsapp_disponibilidad import vista_previa;
+vista_previa("<deal>")` in `bench console`. See the Spanish README for details.
 
 ## Ticket flow
 
